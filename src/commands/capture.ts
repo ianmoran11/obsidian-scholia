@@ -16,6 +16,8 @@ export class CaptureRunner {
     llmRequest: LlmRequest,
     config: TemplateConfig,
     onChunk: (chunk: string) => Promise<void>,
+    sourcePath: string | undefined,
+    templateName: string | undefined,
   ): Promise<void> {
     let accumulatedContent = "";
     const abortController = new AbortController();
@@ -34,8 +36,8 @@ export class CaptureRunner {
           relativePath: config.alsoAppendTo,
           content: accumulatedContent,
           format: config.appendFormat ?? "markdown",
-          sourcePath: undefined,
-          templateName: undefined,
+          sourcePath,
+          templateName,
         });
         new Notice(`Scholia: captured to ${config.alsoAppendTo}`);
       }

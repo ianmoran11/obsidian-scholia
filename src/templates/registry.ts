@@ -348,6 +348,8 @@ export class TemplateRegistry {
           async (chunk) => {
             await stream.writeChunk(chunk);
           },
+          view.file?.path,
+          templateName,
         );
       } catch (err) {
         stream.abortWithError(
