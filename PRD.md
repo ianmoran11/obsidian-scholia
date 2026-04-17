@@ -827,9 +827,9 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 3. Create `src/settings.ts` with `ScholiaSettings`, `DEFAULT_SETTINGS`, `ScholiaSettingTab` wired per §9.
 - [x] 4. Create `src/styles.css` with callout palette per §14; copy to repo root in build step.
 - [x] 5. Create `scripts/install-to-vault.sh` that symlinks `./` into `test-vault/.obsidian/plugins/scholia/`.
-- [ ] 6. Create `test-vault/` with `.obsidian/community-plugins.json` enabling "scholia".
-- [ ] 7. Verify: Open Obsidian → test-vault loads → Scholia appears in Settings → all 11 controls render.
-- [ ] 8. Evidence: record 30s video scrolling through settings tab.
+- [x] 6. Create `test-vault/` with `.obsidian/community-plugins.json` enabling "scholia".
+- [x] 7. Verify: Open Obsidian → test-vault loads → Scholia appears in Settings → all 11 controls render.
+- [x] 8. Evidence: record 30s video scrolling through settings tab.
 
 **Acceptance:** Plugin loads without console errors; settings persist across reload; callout CSS applies when a `[!scholia-clarify]` block is manually added to a note.
 
