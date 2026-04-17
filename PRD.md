@@ -853,8 +853,8 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 **Goal:** One template (`Clarify.md`) streams from OpenRouter into an inline callout.
 
 - [x] 17. Implement `src/llm/sse.ts` (async generator, unit-tested).
-- [ ] 18. Implement `src/llm/openrouter.ts`.
-- [ ] 19. Implement `src/stream/callout.ts` (`buildSkeleton`, `appendToCallout`, `formatError`).
+- [x] 18. Implement `src/llm/openrouter.ts`.
+- [x] 19. Implement `src/stream/callout.ts` (`buildSkeleton`, `appendToCallout`, `formatError`).
 - [ ] 20. Implement `src/stream/stream.ts` minimal (no pin-to-range yet — static offset).
 - [ ] 21. Wire `Clarify.md` command to: extract selection, build skeleton, call OpenRouter, pipe chunks to callout.
 - [ ] 22. Error path: if API key missing → Notice + abort before skeleton.

@@ -315,3 +315,51 @@ Status: SUCCESS
 Exit code: 0
 Tasks remaining: 67
 Tasks completed: 18
+--- Iteration 14 [2026-04-17 22:16:24] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 66
+Tasks completed: 20
+Input-tokens: 28388
+Output-tokens: 26583
+Cache-tokens: 1447376
+
+
+## Iteration 15
+Task: M3.18 - Implement src/llm/openrouter.ts
+Files created:
+- src/llm/openrouter.ts (OpenRouterClient implementing LlmClient, fetch + SSE per §12.7)
+Verification:
+- npm test: 44 tests passed
+- npm run build: SUCCESS (no TS errors)
+
+--- Iteration 15 [2026-04-17 22:17:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 65
+Tasks completed: 21
+--- Iteration 15 [2026-04-17 22:17:55] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 65
+Tasks completed: 21
+Input-tokens: 19317
+Output-tokens: 1540
+Cache-tokens: 192978
+
+
+## Iteration 16
+Task: M3.19 - Implement src/stream/callout.ts (buildSkeleton, appendToCallout, formatError)
+Files created:
+- src/stream/callout.ts (buildSkeleton, appendToCallout, formatError per §12.1/12.5)
+- test/unit/callout.test.ts (11 tests covering: folded/expanded skeleton, multiline selection escaping, appendToCallout offset tracking, formatError)
+Verification:
+- npm test -- test/unit/callout.test.ts: 11 tests passed
+- npm run build: SUCCESS (no TS errors)
+
+--- Iteration 16 [2026-04-17 22:20:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 65
+Tasks completed: 20
+
