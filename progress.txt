@@ -139,3 +139,25 @@ Tasks remaining: 79 (Tasks 7-8 require display)
 Tasks completed: 9
 Display required for: Tasks 7, 8
 
+--- Iteration 7 [2026-04-17 21:34:02] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 75
+Tasks completed: 11
+Input-tokens: 21093
+Output-tokens: 4449
+Cache-tokens: 496309
+
+## Iteration 8
+Task: M2.9 - Implement src/templates/frontmatter.ts (parse + validate + clamp + defaults)
+Files created:
+- src/templates/types.ts (TemplateConfig, RawTemplateFrontmatter interfaces)
+- src/templates/frontmatter.ts (parseFrontmatter function with validation per §10.3/10.4)
+Verification: npm run build succeeded, no TS errors.
+
+--- Iteration 8 [2026-04-17 22:20:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 74
+Tasks completed: 10
+

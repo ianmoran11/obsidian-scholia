@@ -837,7 +837,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 
 **Goal:** Commands appear in palette derived from template files; hot-reload works.
 
-- [ ] 9. Implement `src/templates/frontmatter.ts` (parse + validate + clamp + defaults).
+- [x] 9. Implement `src/templates/frontmatter.ts` (parse + validate + clamp + defaults).
 - [ ] 10. Implement `src/templates/registry.ts` with `load()`, `reconcile()`, debounced vault watchers.
 - [ ] 11. Implement `src/util/removeCommand.ts` wrapper with try/catch + Notice fallback.
 - [ ] 12. Wire registry into `main.ts` `onload`. Each template registers a `Command` whose callback `new Notice("<template name>: context=<resolved scope length>")` (stub — no LLM yet).
