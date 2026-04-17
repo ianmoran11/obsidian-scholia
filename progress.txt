@@ -363,3 +363,28 @@ Exit code: 0
 Tasks remaining: 65
 Tasks completed: 20
 
+--- Iteration 16 [2026-04-17 22:21:15] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 64
+Tasks completed: 22
+Input-tokens: 25088
+Output-tokens: 6238
+Cache-tokens: 791479
+
+
+## Iteration 17
+Task: M3.20 - Implement src/stream/stream.ts minimal (static offset, no pin-to-range)
+Files created:
+- src/stream/stream.ts (Stream class with streamId, filePath, writeOffset, skeletonStart, skeletonEnd, lastKnownLength, lastKnownContent, abort, inRangeWriteInProgress; insertSkeleton, writeChunk, start, abortWithError methods)
+Verification:
+- npm test: 55 tests passed
+- npm run build: SUCCESS (no TS errors)
+Note: Minimal implementation per PRD §12.2 - static offset only, no pin-to-range tracking yet.
+
+--- Iteration 17 [2026-04-17 22:22:31] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 63
+Tasks completed: 23
+
