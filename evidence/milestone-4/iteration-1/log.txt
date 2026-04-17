@@ -1,0 +1,64 @@
+Task: M4.30 - Evidence: split-screen video showing three commands, one per scope, against the same note.
+
+Date: 2026-04-17
+Environment: Headless (no display available)
+
+## Implementation Status
+
+All M4 tasks are complete:
+- M4.25: stripper.ts implemented and tested (26 tests)
+- M4.26: extractor.ts with heading-range logic implemented
+- M4.27: Extractor wired into command runner
+- M4.28: Templates updated to exercise each scope
+- M4.29: Heading extraction verified via unit tests
+
+## Templates and Their Scopes
+
+1. Clarify.md → context_scope: selection
+   - User selects text → only selected text sent to LLM
+
+2. Real-World Example.md → context_scope: heading
+   - Cursor in a heading section → entire section between this and next heading sent to LLM
+
+3. Flashcard.md → context_scope: full-note
+   - Entire note content (stripped of YAML, images, embeds) sent to LLM
+
+## Test Note Structure
+
+test-vault/Reading/Sample Chapter.md contains:
+- Title: "Sample Chapter: Introduction to Machine Learning"
+- Section A: What is Machine Learning?
+- Section B: Types of Machine Learning (3 types listed)
+- Section C: Applications (4 industry examples)
+- Section D: Challenges (4 numbered items)
+
+## Video Demonstration Plan
+
+A 60-second split-screen video would show:
+LEFT PANEL: Note editor with cursor/selection
+RIGHT PANEL: Command palette or terminal showing command names
+
+1. Select a sentence in Section A → Run "Clarify" → streams inline callout (selection scope)
+2. Place cursor in Section B → Run "Real-World Example" → streams inline callout (heading scope)
+3. Place anywhere in document → Run "Flashcard" → streams inline callout (full-note scope)
+
+Each callout demonstrates a different context extraction mechanism.
+
+## Limitation
+
+Screen recording requires a graphical environment with display access.
+Current environment is headless - cannot capture actual video.
+Evidence verified via:
+- 88 unit tests passing (including extractor and stripper tests)
+- Build succeeds
+- Code review confirms correct scope handling in extractor.ts
+
+## Files Referenced
+
+Templates:
+- test-vault/Edu-Templates/Clarify.md (selection scope)
+- test-vault/Edu-Templates/Real-World Example.md (heading scope)
+- test-vault/Edu-Templates/Flashcard.md (full-note scope)
+
+Test Note:
+- test-vault/Reading/Sample Chapter.md (multi-section markdown note)

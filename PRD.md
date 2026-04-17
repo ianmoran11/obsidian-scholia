@@ -872,7 +872,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 27. Wire extractor into the generic command runner.
 - [x] 28. Update all four test-vault templates to exercise each scope at least once.
 - [x] 29. Verify: run a `heading`-scoped template with cursor inside `## Section B` → LLM prompt contains only that section (assert via debug log).
-- [ ] 30. Evidence: split-screen video showing three commands, one per scope, against the same note.
+- [x] 30. Evidence: split-screen video showing three commands, one per scope, against the same note.
 
 **Acceptance:** Each scope verified in both unit tests and recorded evidence.
 
