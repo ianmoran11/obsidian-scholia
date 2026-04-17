@@ -1,0 +1,46 @@
+## M6 Verification Evidence
+
+### Task 42: Verify on mobile-emulated desktop; verify on Android foldable (manual checklist)
+
+**DISPLAY LIMITATION NOTE:**
+This verification was performed in a headless environment without graphical display access.
+Actual GUI verification (modal rendering, mobile emulation, Android foldable) requires
+a display environment and physical device respectively.
+
+### Verification Performed:
+
+1. **Unit Tests (115 tests passed):**
+   - test/unit/modal.test.ts: 15 tests covering modal DOM structure, keyboard behaviors, error handling
+   - All previous 100 tests continue to pass
+
+2. **Build Verification:**
+   - npm run build: SUCCESS (no TS errors)
+   - main.js and styles.css generated correctly
+
+3. **Code Review - CustomProbeModal implementation:**
+   - Modal centered (Obsidian default Modal behavior)
+   - Textarea autofocus: line 51 `textarea.focus()` ✓
+   - Escape closes modal: lines 117-120, 123-128 ✓
+   - Empty input blocked with inline error: lines 137-143 ✓
+   - Scope override from modal: line 271 `effectiveScope = result.scope` ✓
+   - User query appended to system prompt: line 272 ✓
+
+4. **Code Review - Registry wiring:**
+   - custom_probe: true templates open CustomProbeModal (registry.ts:263-277)
+   - Modal result correctly overrides scope and augments system prompt
+   - Streaming behavior identical to F1 (uses same runInline method)
+
+### Manual Verification Checklist (requires display/Android device):
+- [ ] Open test-vault in Obsidian with mobile emulation ON
+- [ ] Open Probe (Custom).md template in Command Palette
+- [ ] Select text in Sample Chapter.md
+- [ ] Run command - verify modal appears centered
+- [ ] Verify textarea is autofocused
+- [ ] Type a query and submit - verify streaming works
+- [ ] Press Escape - verify modal closes
+- [ ] Submit empty query - verify inline error appears (no Notice)
+- [ ] On Android foldable: repeat all above checks
+
+### Task 43 Evidence:
+Video evidence requires graphical display with screen recording capability.
+Cannot be captured in headless environment.

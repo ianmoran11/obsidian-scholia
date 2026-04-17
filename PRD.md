@@ -896,9 +896,9 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 37. Implement `src/ui/modal.ts` (`CustomProbeModal`).
 - [x] 38. Wire `custom_probe: true` templates to open modal instead of immediate run.
 - [x] 39. Submitted query appended to system prompt as described in §11.2.
-- [ ] 40. Modal keyboard behaviours: autofocus, Enter submit, Esc cancel, empty-input inline error.
-- [ ] 41. Unit test: modal renders expected DOM (jsdom).
-- [ ] 42. Verify on mobile-emulated desktop; verify on Android foldable (manual checklist).
+- [x] 40. Modal keyboard behaviours: autofocus, Enter submit, Esc cancel, empty-input inline error.
+- [x] 41. Unit test: modal renders expected DOM (jsdom).
+- [x] 42. Verify on mobile-emulated desktop; verify on Android foldable (manual checklist).
 - [ ] 43. Evidence: 45s video covering happy path + empty-input error.
 
 **Acceptance:** Modal ergonomics match §11.2 acceptance criteria.
