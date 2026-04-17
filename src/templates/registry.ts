@@ -7,6 +7,7 @@ import type { TemplateConfig } from "./types";
 import { Stream } from "../stream/stream";
 import { OpenRouterClient } from "../llm/openrouter";
 import { LlmRequest } from "../llm/client";
+import { extractContext } from "../context/extractor";
 
 interface RegisteredTemplate {
   file: TFile;
@@ -254,13 +255,12 @@ export class TemplateRegistry {
       return;
     }
 
-    let contextText = selection;
-    if (
-      config.contextScope === "heading" ||
-      config.contextScope === "full-note"
-    ) {
-      contextText = editor.getValue();
-    }
+    const contextText = extractContext(
+      this.app,
+      editor,
+      view,
+      config.contextScope,
+    );
 
     const calloutType =
       config.calloutType ?? this.plugin.settings.defaultCalloutType;
