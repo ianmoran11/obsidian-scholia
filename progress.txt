@@ -34,3 +34,19 @@ Files changed: manifest.json (already correct - no changes needed)
 Verification: Confirmed manifest.json contains all required values (id, name, version, minAppVersion, description, isDesktopOnly).
 Status: SUCCESS
 
+--- Iteration 2 [2026-04-17 21:25:42] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 81
+Tasks completed: 5
+Input-tokens: 15838
+Output-tokens: 3292
+Cache-tokens: 258282
+
+## Iteration 3
+Task: M1.3 - Implement ScholiaSettingTab with all 11 controls per §9
+Files changed:
+- src/settings.ts (added FolderSuggest class + full ScholiaSettingTab with all 11 controls: API key, model, temperature slider, max tokens, templates folder with FolderSuggest, central capture file, callout type dropdown, hot-reload toggle, debug toggle, open folder button, create samples button)
+- src/main.ts (import ScholiaSettingTab from settings.ts instead of defining locally)
+Verification: npm run build succeeded, no TS errors.
+

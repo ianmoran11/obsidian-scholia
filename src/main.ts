@@ -1,5 +1,9 @@
-import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
-import { ScholiaSettings, DEFAULT_SETTINGS } from "./settings";
+import { App, Plugin } from "obsidian";
+import {
+  ScholiaSettings,
+  DEFAULT_SETTINGS,
+  ScholiaSettingTab,
+} from "./settings";
 
 export default class ScholiaPlugin extends Plugin {
   settings: ScholiaSettings;
@@ -15,20 +19,5 @@ export default class ScholiaPlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
-  }
-}
-
-class ScholiaSettingTab extends PluginSettingTab {
-  plugin: ScholiaPlugin;
-
-  constructor(app: App, plugin: ScholiaPlugin) {
-    super(app, plugin);
-    this.plugin = plugin;
-  }
-
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.createEl("h2", { text: "Scholia Settings" });
   }
 }
