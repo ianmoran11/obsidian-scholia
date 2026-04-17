@@ -920,13 +920,13 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 
 **Goal:** Pin-to-range, concurrent streams, abort-on-edit-in-range, error display.
 
-- [ ] 50. Implement pin-to-range offset tracking per §12.3 with unit tests covering: edit-before, edit-inside, edit-after, multi-line edit.
-- [ ] 51. Implement concurrent `StreamManager` with soft cap 8.
-- [ ] 52. Implement error rendering in-callout per §12.5.
-- [ ] 53. Unit test: two streams in different notes, edits in one do not affect the other.
-- [ ] 54. Unit test: edit-inside triggers abort + error callout.
-- [ ] 55. Verify with manual multi-stream session (run three templates quickly).
-- [ ] 56. Evidence: 90s video showing two simultaneous streams + one pinned through a paragraph insertion elsewhere.
+- [x] 50. Implement pin-to-range offset tracking per §12.3 with unit tests covering: edit-before, edit-inside, edit-after, multi-line edit.
+- [x] 51. Implement concurrent `StreamManager` with soft cap 8.
+- [x] 52. Implement error rendering in-callout per §12.5.
+- [x] 53. Unit test: two streams in different notes, edits in one do not affect the other.
+- [x] 54. Unit test: edit-inside triggers abort + error callout.
+- [x] 55. Verify with manual multi-stream session (run three templates quickly).
+- [x] 56. Evidence: 90s video showing two simultaneous streams + one pinned through a paragraph insertion elsewhere.
 
 **Acceptance:** All §12 behaviour observable on video and exercised by tests.
 

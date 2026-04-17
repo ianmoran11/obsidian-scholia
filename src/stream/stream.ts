@@ -12,6 +12,7 @@ export class Stream {
   public lastKnownContent: string = "";
   public inRangeWriteInProgress: boolean = false;
   public abort: AbortController;
+  public isAborted: boolean = false;
 
   private editor: Editor;
   private view: MarkdownView;
@@ -73,5 +74,24 @@ export class Stream {
 
   abortWithError(message: string): void {
     this.abort.abort(new Error(message));
+    this.isAborted = true;
+  }
+
+  applyExternalEdit(
+    delta: number,
+    changePos: number,
+  ): "shift" | "abort" | "none" {
+    if (this.inRangeWriteInProgress) return "none";
+    if (changePos >= this.skeletonStart && changePos < this.skeletonEnd) {
+      this.abortWithError("User edited inside the callout");
+      return "abort";
+    }
+    if (changePos < this.skeletonStart) {
+      this.writeOffset += delta;
+      this.skeletonStart += delta;
+      this.skeletonEnd += delta;
+      return "shift";
+    }
+    return "none";
   }
 }

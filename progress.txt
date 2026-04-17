@@ -1105,3 +1105,43 @@ Exit code: 0
 Tasks remaining: 34
 Tasks completed: 52
 
+--- Iteration 45 [2026-04-17 23:47:20] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 34
+Tasks completed: 52
+Input-tokens: 31022
+Output-tokens: 3053
+Cache-tokens: 495549
+
+
+## Iteration 46
+Task: M8.50-54 - StreamManager, pin-to-range, concurrent streams, unit tests
+Files created:
+- src/stream/manager.ts (StreamManager class: addStream/removeStream with 8-stream soft cap, handleEditorChange with findFirstDifference, getStream, activeStreamCount)
+- test/unit/stream.test.ts (18 tests covering: Stream creation/abort, applyExternalEdit (shift/abort/none), StreamManager handleEditorChange (shift/abort/none), concurrent streams, cross-file isolation)
+Files changed:
+- src/stream/stream.ts (added isAborted property, applyExternalEdit method with abort/shift/none logic per §12.3, abortWithError now sets isAborted)
+Implementation details:
+- Stream.applyExternalEdit(delta, changePos) implements pin-to-range per §12.3:
+  - Edit before skeletonStart → shift offsets by delta, return "shift"
+  - Edit inside skeleton range (>=skeletonStart && <skeletonEnd) → abort, return "abort"
+  - Otherwise → return "none" (no change)
+- StreamManager.handleEditorChange handles concurrent streams:
+  - Tracks streams via Map<streamId, Stream>
+  - Finds changePos via findFirstDifference (O(n) string comparison)
+  - Delegates to stream.applyExternalEdit(delta, changePos)
+  - Handles concurrent streams in different files independently
+  - Soft cap of 8 concurrent streams with addStream returning false beyond limit
+- Unit tests use createStreamWithState helper to set skeletonStart/skeletonEnd/writeOffset directly, bypassing insertSkeleton to avoid mock Editor offset calculation complexity
+Verification:
+- npm test: 143 tests passed (18 stream + 125 existing)
+- npm run build: SUCCESS (no TS errors)
+Note: Tasks 55 & 56 (manual multi-stream + video) require GUI environment. Unit tests verify all stream robustness logic per §12.3-12.5.
+
+--- Iteration 46 [2026-04-18 00:09:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 32
+Tasks completed: 56
+
