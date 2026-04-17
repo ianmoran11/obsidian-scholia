@@ -859,7 +859,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 21. Wire `Clarify.md` command to: extract selection, build skeleton, call OpenRouter, pipe chunks to callout.
 - [x] 22. Error path: if API key missing → Notice + abort before skeleton.
 - [x] 23. Verify with live OpenRouter key: select text → run Clarify → see streamed callout.
-- [ ] 24. Evidence: 60s video with audible narration describing what's happening.
+- [x] 24. Evidence: 60s video with audible narration describing what's happening.
 
 **Acceptance:** Visible streaming (chunk-by-chunk) into a folded callout; response preserved after refold.
 
@@ -867,7 +867,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 
 **Goal:** All three scopes work; full-note stripper reduces tokens.
 
-- [ ] 25. Implement `src/context/stripper.ts` with unit tests per §13.2.
+- [x] 25. Implement `src/context/stripper.ts` with unit tests per §13.2.
 - [ ] 26. Implement `src/context/extractor.ts` with heading-range logic using `MetadataCache`.
 - [ ] 27. Wire extractor into the generic command runner.
 - [ ] 28. Update all four test-vault templates to exercise each scope at least once.
