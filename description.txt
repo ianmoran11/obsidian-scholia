@@ -1,0 +1,84 @@
+PROJECT OVERVIEW
+================
+Project Name: Scholia
+Platform: Obsidian (Desktop and Mobile)
+Type: Obsidian Community Plugin
+Core Philosophy: Turn passive reading into an active, local-first, ai-enabled (via api) learning environment. Scholia allows users to annotate, clarify, and extract knowledge from educational markdown material without breaking their reading flow. It heavily prioritizes ergonomic, zero-friction UX via Obsidian's Live Preview mode, utilizing the mobile toolbar and native commands rather than intrusive dialog boxes. 
+
+TARGET ARCHITECTURE & CONSTRAINTS
+=================================
+1. API Usage: The plugin must intentionally bypass the deep CodeMirror 6 engine (no custom StateFields, Decorations, or complex inline widget rendering) to reduce technical debt and ensure long-term stability. 
+2. Core Engine: It relies strictly on Obsidian’s high-level `Editor` API and native `Commands` registry.
+3. Configuration: The plugin templates and options are data-driven via markdown plain-text files. Obsidian settings menus are used for global settings.
+4. LLM Agnostic: Uses standard asynchronous `fetch` logic to handle Server-Sent Events (SSE). Must support both cloud inference (e.g., OpenRouter) and local inference endpoints running on consumer hardware (e.g., Mac mini M2 running quantized GGUF models).
+
+USER EXPERIENCE (UX) FLOWS
+==========================
+HOTKEY PROBING: The Inline Clarification (Streaming)
+1. User is reading in Live Preview mode.
+2. User highlights a confusing sentence or paragraph.
+3. User taps a command button pinned to their Mobile Toolbar (e.g., "0 - Describe this in more detail to clarify")
+4. Zero-UI Execution: No popups appear. The plugin instantly grabs the context and pings the LLM.
+5. The LLM response streams word-by-word directly into the markdown file, situated exactly below the highlighted text.
+6. The streaming text is automatically formatted into a native Obsidian collapsible callout (e.g., `> [!faq]- AI Clarification`), defaulting to a closed state so it does not clutter the document.
+
+CUSTOM PROBING: The Inline Clarification (Streaming)
+1. User is reading in Live Preview mode.
+2. User highlights a confusing sentence or paragraph.
+3. User taps a command button pinned to their Mobile Toolbar (e.g., "0 - Probe")
+4. UI Execution: popup appears. User has an input box to make write query and has options on how much context to include.  
+5. After the prompt is entered, the LLM response streams word-by-word directly into the markdown file, situated exactly below the highlighted text.
+6. The streaming text is automatically formatted into a native Obsidian collapsible callout (e.g., `> [!faq]- AI Clarification`), defaulting to a closed state so it does not clutter the document.
+
+
+CAPTURE: Background Data Routing (Flashcards & Feedback)
+1. User highlights text.
+2. User taps a command (e.g., "Generate Flashcard").
+3. The LLM generates the structured data in the background.
+4. The output is injected into the active reading note via a collapsed callout
+5. The output is also silently appended to a centralized file (e.g., `_System/Central-Flashcards.md`). 
+6. The user receives a brief native Obsidian `Notice` toast (e.g., "Flashcard added to deck") and continues reading.
+
+THE TEMPLATE ENGINE (CORE LOGIC)
+================================
+Instead of hardcoding features, Scholia dynamically generates its capabilities from a user-defined folder.
+- Folder Setup: User creates a folder named `Edu-Templates` in their vault.
+- Dynamic Registration: On plugin load, Scholia scans this folder. Every markdown note inside becomes a distinct Obsidian command available in the Command Palette and Mobile Toolbar.
+- File Name = Command Name (e.g., a file named `Provide Real-World Example.md` creates a command "Run: Provide Real-World Example").
+- File Body = The LLM System Prompt.
+- YAML Frontmatter = The Routing Logic. 
+
+FRONTMATTER CONFIGURATION SCHEMA
+================================
+Every template file must include YAML frontmatter to dictate how Scholia executes the command.
+
+Key 1: `context_scope` (How much context to send to the LLM to manage VRAM/Token limits)
+- `selection`: Sends ONLY the highlighted text.
+- `heading`: Uses `app.metadataCache.getFileCache()` to locate the nearest `## Heading` above the cursor and the next heading below it. Sends this localized section.
+- `full-note`: Sends the entire document. Must include a regex pre-processor to strip out URLs, image links, and YAML frontmatter to save tokens and speed up Time-To-First-Token.
+
+Key 2: `output_destination` (Where the LLM response goes)
+- `inline`: Triggers the streaming collapsible callout behavior directly beneath the active cursor.
+- `[filepath]` (e.g., `_System/Flashcards.md`): Triggers the background routing behavior. Appends the response silently to the specified markdown file using `app.vault.append()`. Can also be configured to route JSON payloads to a DuckDB schema if implemented.
+
+STREAMING IMPLEMENTATION REQUIREMENTS
+=====================================
+Handling the SSE stream into a collapsible callout requires precise cursor coordinate management.
+1. Insert Skeleton: Immediately upon trigger, replace the user's selection with the selection itself + an empty folded callout block: `
+
+> [!ai]- AI: {Command Name}
+> **Context:** *{Selection}*
+> 
+> **Response:**
+> `
+2. Position Tracking: Track the exact coordinate position at the end of the final `> `.
+3. Stream Loop: In the `while` loop receiving the SSE chunks, use `editor.replaceRange(text, position)`.
+4. Callout Preservation: Inside the loop, run a regex `replace(/
+/g, '
+> ')` on every incoming chunk to intercept newlines and prepend the blockquote syntax. Update the coordinate position dynamically based on chunk length.
+
+EXCALIDRAW INTEGRATION
+
+FUTURE EXTENSIBILITY (To be included in PRD)
+============================================
+- Custom CSS Snippets: Plugin should ship with CSS defining specific custom callouts (e.g., `[!scholia-clarify]`, `[!scholia-example]`) with distinct subdued academic color palettes to visually distinguish AI annotations from standard text.

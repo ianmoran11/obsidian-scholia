@@ -1,0 +1,21 @@
+=== Ralph Progress Log ===
+Started: 2026-04-17 21:21:40
+Provider: minimax
+Model: MiniMax-M2.7
+Tool: opencode
+
+## Iteration 1
+Task: M1.1 - Initialise from obsidian-sample-plugin
+Files created:
+- manifest.json (id: scholia, version: 0.1.0, minAppVersion: 1.5.0)
+- package.json (TypeScript, esbuild, vitest, eslint, prettier)
+- tsconfig.json (ES2020, bundler module resolution)
+- esbuild.config.mjs (CommonJS, browser platform, es2020 target)
+- src/main.ts (minimal Plugin subclass with onload/loadSettings)
+- src/settings.ts (ScholiaSettings interface + DEFAULT_SETTINGS)
+- src/styles.css (placeholder)
+- versions.json (version map)
+- .gitignore
+
+Verification: npm run build succeeded, main.js and styles.css generated.
+

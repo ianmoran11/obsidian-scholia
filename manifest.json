@@ -1,0 +1,12 @@
+{
+	"id": "scholia",
+	"name": "Scholia",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Active-reading AI annotations for Obsidian.",
+	"author": "Scholia",
+	"authorUrl": "",
+	"license": "MIT",
+	"homepageUrl": "",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,7 @@
+*.mp4
+evidence/**/*.mp4
+test-vault/.obsidian/workspace*.json
+main.js
+costs.jsonl
+node_modules/
+dist/
