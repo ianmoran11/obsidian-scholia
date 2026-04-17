@@ -3,6 +3,9 @@ import type { OpenRouterClient } from "../llm/openrouter";
 import type { LlmRequest } from "../llm/client";
 import type { TemplateConfig } from "../templates/types";
 import { appendToVault } from "../storage/appendFile";
+import { NoopSqliteStore } from "../storage/sqlite";
+
+const sqliteStore = new NoopSqliteStore();
 
 export class CaptureRunner {
   private app: App;
@@ -41,6 +44,16 @@ export class CaptureRunner {
         });
         new Notice(`Scholia: captured to ${config.alsoAppendTo}`);
       }
+
+      await sqliteStore.insertCapture({
+        id: `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        ts: new Date().toISOString(),
+        sourcePath: sourcePath ?? "",
+        template: templateName ?? "",
+        content: accumulatedContent,
+        scope: config.contextScope,
+        model: llmRequest.model,
+      });
     } catch (err) {
       if (!abortController.signal.aborted) {
         new Notice(
