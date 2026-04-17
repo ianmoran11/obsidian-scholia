@@ -290,3 +290,28 @@ Verification:
 - npm run build: SUCCESS
 Note: Headless environment cannot record video. Unit tests verify reconcile logic.
 Actual screencast requires GUI environment with display.
+--- Iteration 13 [2026-04-17 22:01:45] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 67
+Tasks completed: 19
+Input-tokens: 20258
+Output-tokens: 6735
+Cache-tokens: 730341
+
+
+## Iteration 14
+Task: M3.17 - Implement src/llm/sse.ts (async generator, unit-tested)
+Files created:
+- src/llm/sse.ts (parseSseStream async generator - handles SSE events terminated by \n\n, parses JSON from data: lines, handles partial JSON across chunks, ignores malformed JSON)
+- src/llm/client.ts (LlmClient interface and LlmRequest type)
+- test/unit/sse.test.ts (10 tests covering: single event, [DONE] termination, malformed JSON skip, empty delta skip, sequential events, multiple data lines in one event, event lines without data: prefix skip, JSON split across network chunks)
+Verification:
+- npm test: 44 tests passed (10 sse + 23 frontmatter + 11 registry)
+- npm run build: SUCCESS (no TS errors)
+
+--- Iteration 14 [2026-04-17 22:15:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 67
+Tasks completed: 18

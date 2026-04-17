@@ -852,7 +852,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 
 **Goal:** One template (`Clarify.md`) streams from OpenRouter into an inline callout.
 
-- [ ] 17. Implement `src/llm/sse.ts` (async generator, unit-tested).
+- [x] 17. Implement `src/llm/sse.ts` (async generator, unit-tested).
 - [ ] 18. Implement `src/llm/openrouter.ts`.
 - [ ] 19. Implement `src/stream/callout.ts` (`buildSkeleton`, `appendToCallout`, `formatError`).
 - [ ] 20. Implement `src/stream/stream.ts` minimal (no pin-to-range yet — static offset).
