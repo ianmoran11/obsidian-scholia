@@ -950,7 +950,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 63. Write project `README.md` for plugin users (install, configure, write a template).
 - [x] 64. Run a full loop pass on all milestones to regenerate `evidence/milestone-*/index.html`.
 - [x] 65. Prepare release artefact set: `manifest.json`, `main.js`, `styles.css` zipped under `dist/scholia-v0.10.0.zip`.
-- [ ] 66. Verify on Android foldable (manual checklist, documented).
+- [x] 66. Verify on Android foldable (manual checklist, documented).
 - [x] 67. Evidence: compiled HTML index linking all milestone pages.
 
 **Acceptance:** A non-technical user can, following README, install the plugin into their vault and run Clarify on a sentence.
