@@ -841,8 +841,8 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 10. Implement `src/templates/registry.ts` with `load()`, `reconcile()`, debounced vault watchers.
 - [x] 11. Implement `src/util/removeCommand.ts` wrapper with try/catch + Notice fallback.
 - [x] 12. Wire registry into `main.ts` `onload`. Each template registers a `Command` whose callback `new Notice("<template name>: context=<resolved scope length>")` (stub — no LLM yet).
-- [ ] 13. Seed `test-vault/Edu-Templates/` with `Clarify.md`, `Real-World Example.md`, `Flashcard.md`, `Probe (Custom).md` — all with full frontmatter.
-- [ ] 14. Unit tests for `frontmatter` and `registry`.
+- [x] 13. Seed `test-vault/Edu-Templates/` with `Clarify.md`, `Real-World Example.md`, `Flashcard.md`, `Probe (Custom).md` — all with full frontmatter.
+- [x] 14. Unit tests for `frontmatter` and `registry`.
 - [ ] 15. Verify: add/edit/rename/delete a template → palette updates within 500ms.
 - [ ] 16. Evidence: 45s screencast demonstrating all four reconcile paths.
 

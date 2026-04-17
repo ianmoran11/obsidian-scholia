@@ -79,7 +79,10 @@ export function parseFrontmatter(
     config.model = raw.model;
   }
 
-  if (typeof raw.temperature === "number" || raw.temperature === "string") {
+  if (
+    typeof raw.temperature === "number" ||
+    typeof raw.temperature === "string"
+  ) {
     const temp =
       typeof raw.temperature === "string"
         ? parseFloat(raw.temperature)
@@ -89,7 +92,10 @@ export function parseFrontmatter(
     }
   }
 
-  if (typeof raw.max_tokens === "number" || raw.max_tokens === "string") {
+  if (
+    typeof raw.max_tokens === "number" ||
+    typeof raw.max_tokens === "string"
+  ) {
     const tokens =
       typeof raw.max_tokens === "string"
         ? parseInt(raw.max_tokens)

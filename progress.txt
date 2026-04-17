@@ -188,3 +188,56 @@ Exit code: 0
 Tasks remaining: 74
 Tasks completed: 13
 
+--- Iteration 9 [2026-04-17 21:43:42] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 71
+Tasks completed: 15
+Input-tokens: 34374
+Output-tokens: 13513
+Cache-tokens: 1749525
+
+## Iteration 10
+Task: M2.13 - Seed test-vault/Edu-Templates/ with four template files
+Files created:
+- test-vault/Edu-Templates/Clarify.md (context_scope: selection, scholia-clarify callout)
+- test-vault/Edu-Templates/Real-World Example.md (context_scope: heading, scholia-example callout)
+- test-vault/Edu-Templates/Flashcard.md (context_scope: selection, scholia-flashcard, also_append_to: _System/Central-Flashcards.md)
+- test-vault/Edu-Templates/Probe (Custom).md (context_scope: heading, custom_probe: true)
+Verification: All four files created with correct frontmatter per PRD Appendix A.
+
+--- Iteration 10 [2026-04-17 22:15:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 73
+Tasks completed: 14
+
+--- Iteration 10 [2026-04-17 21:44:43] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 70
+Tasks completed: 16
+Input-tokens: 16930
+Output-tokens: 2012
+Cache-tokens: 183326
+
+
+## Iteration 11
+Task: M2.14 - Unit tests for frontmatter and registry
+Files created:
+- vitest.config.ts (vitest configuration with jsdom environment)
+- test/mocks/obsidian.ts (minimal obsidian mock with Notice, Command, TFile, App, Vault, Editor)
+- test/unit/frontmatter.test.ts (23 tests covering valid/invalid schema, clamping, defaulting, hotkey normalisation)
+- test/unit/registry.test.ts (11 tests covering discovery, hot-reload reconciliation: add/modify/rename/delete)
+Files changed:
+- src/templates/frontmatter.ts (fixed bug: temperature/max_tokens string parsing used === "string" instead of typeof === "string")
+Verification:
+- npm test: 34 tests passed (23 frontmatter + 11 registry)
+- npm run build: SUCCESS (no TS errors)
+Note: Tasks 15 & 16 (GUI verification & screencast) require graphical environment with display.
+
+--- Iteration 11 [2026-04-17 21:54:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 70 (Tasks 15, 16 require display)
+Tasks completed: 15
