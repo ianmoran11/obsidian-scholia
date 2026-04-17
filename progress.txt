@@ -645,3 +645,27 @@ Exit code: 0
 Tasks remaining: 51
 Tasks completed: 35
 
+--- Iteration 28 [2026-04-17 23:01:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 51
+Tasks completed: 35
+Input-tokens: 12071
+Output-tokens: 1362
+Cache-tokens: 14912
+
+
+## Iteration 29
+Task: M5.33 - Notice after non-inline append
+Files verified:
+- src/templates/registry.ts:363 (Notice already present: `new Notice(\`Scholia: appended to ${destPath}\`)`)
+Verification:
+- npm test: 100 tests passed
+- npm run build: SUCCESS (no TS errors)
+Note: Task 33 was already implemented in Iteration 28. Verified Notice message format matches PRD spec: "Scholia: appended to <path>".
+
+--- Iteration 29 [2026-04-17 23:02:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 52
+Tasks completed: 34
