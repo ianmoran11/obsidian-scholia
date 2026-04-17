@@ -4,7 +4,7 @@ import {
   appendToCallout,
   formatError,
 } from "../../src/stream/callout.ts";
-import { Editor } from "../mocks/obsidian.ts";
+import { Editor } from "../mocks/obsidian";
 
 describe("buildSkeleton", () => {
   it("creates folded callout with correct structure", () => {

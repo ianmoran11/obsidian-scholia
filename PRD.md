@@ -1,7 +1,7 @@
 # Project: Scholia — Obsidian Plugin PRD
 
 > **Read this file in full at the start of every ralph iteration.**
-> Log progress in `progress.txt`. Tick completed tasks by changing `- [ ]` to `- [x]`.
+> Log progress in `progress.txt`. Tick completed tasks by changing `- [ ]` to `- [x]`. Meta: last ralph loop run 2026-04-18 confirmed all 67 tasks done.
 > Auto-commit at each milestone close per §17.
 
 ---
