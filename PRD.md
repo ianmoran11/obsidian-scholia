@@ -858,7 +858,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 20. Implement `src/stream/stream.ts` minimal (no pin-to-range yet — static offset).
 - [x] 21. Wire `Clarify.md` command to: extract selection, build skeleton, call OpenRouter, pipe chunks to callout.
 - [x] 22. Error path: if API key missing → Notice + abort before skeleton.
-- [ ] 23. Verify with live OpenRouter key: select text → run Clarify → see streamed callout.
+- [x] 23. Verify with live OpenRouter key: select text → run Clarify → see streamed callout.
 - [ ] 24. Evidence: 60s video with audible narration describing what's happening.
 
 **Acceptance:** Visible streaming (chunk-by-chunk) into a folded callout; response preserved after refold.
