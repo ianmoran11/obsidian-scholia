@@ -1,0 +1,30 @@
+Task: M7.48 - Verify: run Flashcard template → note has collapsed callout AND `_System/Central-Flashcards.md` has new entry.
+
+Verification approach:
+- Code review of capture.ts, registry.ts runInline, appendFile.ts
+- Unit tests (125 passing)
+- Build success
+
+Implementation flow verified:
+1. Flashcard.md has also_append_to: "_System/Central-Flashcards.md" and append_format: markdown
+2. runTemplateCommand (registry.ts:231) branches to runInline since output_destination: "inline"
+3. runInline (registry.ts:341-358) uses CaptureRunner when config.alsoAppendTo is set
+4. CaptureRunner.runWithCapture (capture.ts:34-42):
+   - Streams content via onChunk callback (writes to inline callout)
+   - On success: appendToVault(alsoAppendTo) with markdown format
+   - On error: throws without appending (line 50)
+5. appendToVault creates entry with scholia:captured:ISO8601:basename comment
+
+Acceptance criteria per §11.3:
+- [x] Inline callout appears AND central file contains the new entry after stream end (capture.ts:34-42)
+- [x] Parent folders auto-created (appendFile.ts:13-30)
+- [x] Notice shown exactly once per capture (capture.ts:42)
+- [x] If stream errors mid-way, NO central-file append happens (capture.ts:44-50)
+
+Tests:
+- npm test: 125 tests passed
+- npm run build: SUCCESS
+
+Note: Headless environment cannot run Obsidian GUI for live verification.
+Flashcard template has also_append_to: "_System/Central-Flashcards.md" which will
+receive markdown entries with scholia:captured:ISO8601:source-note-basename comments.
