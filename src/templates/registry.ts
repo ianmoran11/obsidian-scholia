@@ -10,6 +10,7 @@ import { LlmRequest } from "../llm/client";
 import { extractContext } from "../context/extractor";
 import { appendToVault } from "../storage/appendFile";
 import { CustomProbeModal } from "../ui/modal";
+import { CaptureRunner } from "../commands/capture";
 
 interface RegisteredTemplate {
   file: TFile;
@@ -337,12 +338,30 @@ export class TemplateRegistry {
       posAfterSelection,
     );
 
-    try {
-      await stream.start(llmClient.stream(llmRequest, stream.abort.signal));
-    } catch (err) {
-      stream.abortWithError(
-        err instanceof Error ? err.message : "Stream failed",
-      );
+    if (config.alsoAppendTo) {
+      const captureRunner = new CaptureRunner(this.app);
+      try {
+        await captureRunner.runWithCapture(
+          llmClient,
+          llmRequest,
+          config,
+          async (chunk) => {
+            await stream.writeChunk(chunk);
+          },
+        );
+      } catch (err) {
+        stream.abortWithError(
+          err instanceof Error ? err.message : "Stream failed",
+        );
+      }
+    } else {
+      try {
+        await stream.start(llmClient.stream(llmRequest, stream.abort.signal));
+      } catch (err) {
+        stream.abortWithError(
+          err instanceof Error ? err.message : "Stream failed",
+        );
+      }
     }
   }
 

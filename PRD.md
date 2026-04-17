@@ -899,7 +899,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 40. Modal keyboard behaviours: autofocus, Enter submit, Esc cancel, empty-input inline error.
 - [x] 41. Unit test: modal renders expected DOM (jsdom).
 - [x] 42. Verify on mobile-emulated desktop; verify on Android foldable (manual checklist).
-- [ ] 43. Evidence: 45s video covering happy path + empty-input error.
+- [x] 43. Evidence: 45s video covering happy path + empty-input error.
 
 **Acceptance:** Modal ergonomics match §11.2 acceptance criteria.
 
@@ -907,7 +907,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 
 **Goal:** Dual-write (inline + central file) for flashcard-style templates.
 
-- [ ] 44. Implement `src/commands/capture.ts` (thin wrapper over runner + appendFile).
+- [x] 44. Implement `src/commands/capture.ts` (thin wrapper over runner + appendFile).
 - [ ] 45. Honour `also_append_to` + `append_format` (markdown, json-line).
 - [ ] 46. No append on stream error (§11.3).
 - [ ] 47. Unit tests for both formats + error path.
