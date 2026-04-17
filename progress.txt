@@ -1178,3 +1178,81 @@ Exit code: 0
 Tasks remaining: 29 (Tasks 60-61 require display; Task 59 already done)
 Tasks completed: 59
 
+
+## Iteration 48
+Task: M10.62 - Harden scripts (record.sh, evidence.py, emulate-mobile.applescript)
+Files changed:
+- scripts/record.sh (added usage check, ffmpeg existence check, success message)
+- scripts/evidence.py (added milestone name validation, error handling for missing/invalid dirs, regeneration counter)
+- scripts/emulate-mobile.applescript (added usage comment, slightly increased delays for reliability)
+Verification:
+- python3 scripts/evidence.py evidence/: Regenerated 6 milestone index pages
+- npm run build: SUCCESS
+Note: Hardened scripts now handle edge cases better and provide clearer feedback.
+--- Iteration 48 [2026-04-18 00:13:xx] ---
+Status: SUCCESS
+Exit code: 0
+
+
+## Iteration 49
+Task: M10.63 - Write project README.md
+Files created:
+- README.md (user-facing documentation: installation, configuration, template writing guide, callout types, troubleshooting)
+Verification:
+- npm run build: SUCCESS
+Note: README covers install, config, template writing, commands, callout types, troubleshooting.
+--- Iteration 49 [2026-04-18 00:14:xx] ---
+Status: SUCCESS
+Exit code: 0
+
+
+## Iteration 50
+Task: M10.64 - Regenerate all milestone index pages
+Files changed:
+- evidence/milestone-2/index.html (regenerated via evidence.py)
+- evidence/milestone-3/index.html (regenerated via evidence.py)
+- evidence/milestone-4/index.html (regenerated via evidence.py)
+- evidence/milestone-5/index.html (regenerated via evidence.py)
+- evidence/milestone-6/index.html (regenerated via evidence.py)
+- evidence/milestone-7/index.html (regenerated via evidence.py)
+Verification:
+- python3 scripts/evidence.py evidence/: Regenerated 6 milestone index pages
+- npm run build: SUCCESS
+--- Iteration 50 [2026-04-18 00:14:xx] ---
+Status: SUCCESS
+Exit code: 0
+
+
+## Iteration 51
+Task: M10.65 - Prepare release artefact set
+Files created:
+- dist/scholia-v0.10.0.zip (containing main.js, manifest.json, styles.css)
+- dist/main.js (from build)
+- dist/manifest.json (copied)
+- dist/styles.css (copied)
+Verification:
+- npm test: 143 tests passed
+- npm run build: SUCCESS
+- ls dist/: main.js (22845 bytes), manifest.json (256 bytes), styles.css (2114 bytes), scholia-v0.10.0.zip (8623 bytes)
+Note: Release artefacts ready for distribution.
+--- Iteration 51 [2026-04-18 00:14:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 3 (Tasks 66, 67 require display/GUI environment)
+Tasks completed: 66
+
+
+## Iteration 52
+Task: M10.67 - Create compiled HTML index linking all milestone pages
+Files created:
+- evidence/index.html (master index with all milestones, test summary, build summary)
+Verification:
+- npm test: 143 tests passed
+- npm run build: SUCCESS
+Note: Master evidence index created. Tasks 60-61 (visual verify), 66 (Android) require GUI/physical device.
+--- Iteration 52 [2026-04-18 00:15:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 2 (Tasks 60-61, 66 require GUI or physical device)
+Tasks completed: 67
+

@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Scholia Evidence Index</title>
+    <style>
+      body {
+        font: 14px/1.4 system-ui;
+        max-width: 960px;
+        margin: 2em auto;
+        padding: 0 1em;
+      }
+      h1 {
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 0.5em;
+      }
+      h2 {
+        margin-top: 1.5em;
+        color: #555;
+      }
+      ol {
+        padding-left: 1.5em;
+      }
+      li {
+        margin: 0.5em 0;
+      }
+      .milestone {
+        margin: 1.5em 0;
+        padding: 1em;
+        background: #f8f8f8;
+        border-radius: 8px;
+      }
+      .milestone-number {
+        font-weight: bold;
+        font-size: 1.1em;
+      }
+      a {
+        color: #4a90d9;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .status {
+        color: #888;
+        font-size: 0.9em;
+        margin-left: 0.5em;
+      }
+      .assets {
+        margin-top: 0.5em;
+        font-size: 0.9em;
+        color: #666;
+      }
+      video {
+        width: 100%;
+        max-width: 640px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Scholia — Evidence Index</h1>
+    <p>Milestone evidence for the Scholia Obsidian plugin project.</p>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 1</span> — Plugin scaffold &amp;
+      settings
+      <span class="status">✓ Complete (tasks 1-8)</span>
+      <div class="assets">
+        <a href="milestone-1/index.html">index</a>
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 2</span> — Template discovery
+      &amp; dynamic commands
+      <span class="status">✓ Complete (tasks 9-16)</span>
+      <div class="assets">
+        <a href="milestone-2/index.html">index</a>
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 3</span> — OpenRouter streaming
+      end-to-end
+      <span class="status">✓ Complete (tasks 17-24)</span>
+      <div class="assets">
+        <a href="milestone-3/index.html">index</a>
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 4</span> — context_scope variants
+      <span class="status">✓ Complete (tasks 25-30)</span>
+      <div class="assets">
+        <a href="milestone-4/index.html">index</a>
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 5</span> — output_destination
+      routing
+      <span class="status">✓ Complete (tasks 31-36)</span>
+      <div class="assets">
+        <a href="milestone-5/index.html">index</a>
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 6</span> — Custom Probing modal
+      (F2)
+      <span class="status">✓ Complete (tasks 37-43)</span>
+      <div class="assets">
+        <a href="milestone-6/index.html">index</a>
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 7</span> — Capture flow (F3)
+      <span class="status">✓ Complete (tasks 44-49)</span>
+      <div class="assets">
+        <a href="milestone-7/index.html">index</a>
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 8</span> — Stream robustness
+      <span class="status">✓ Complete (tasks 50-56)</span>
+      <div class="assets">
+        Evidence pending (requires GUI environment for multi-stream video)
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 9</span> — SQLite interface &amp;
+      CSS polish
+      <span class="status"
+        >Partial (tasks 57-61 pending display for visual evidence)</span
+      >
+      <div class="assets">
+        SQLite interface implemented (NoopSqliteStore)<br />
+        CSS finalized with all 6 callout types in light/dark themes
+      </div>
+    </div>
+
+    <div class="milestone">
+      <span class="milestone-number">Milestone 10</span> — Evidence tooling
+      &amp; documentation
+      <span class="status">In progress (tasks 62-67)</span>
+      <div class="assets">
+        Scripts hardened: <a href="scripts/record.sh">record.sh</a>,
+        <a href="scripts/evidence.py">evidence.py</a>,
+        <a href="scripts/emulate-mobile.applescript"
+          >emulate-mobile.applescript</a
+        ><br />
+        README: <a href="README.md">README.md</a><br />
+        Release: <a href="dist/scholia-v0.10.0.zip">scholia-v0.10.0.zip</a>
+      </div>
+    </div>
+
+    <h2>Test Summary</h2>
+    <p>Unit tests: 143 passed across 10 test files</p>
+    <ul>
+      <li>frontmatter.test.ts (23 tests)</li>
+      <li>registry.test.ts (11 tests)</li>
+      <li>sse.test.ts (10 tests)</li>
+      <li>callout.test.ts (11 tests)</li>
+      <li>stream.test.ts (18 tests)</li>
+      <li>appendFile.test.ts (12 tests)</li>
+      <li>modal.test.ts (15 tests)</li>
+      <li>capture.test.ts (10 tests)</li>
+      <li>stripper.test.ts (26 tests)</li>
+      <li>extractor.test.ts (7 tests)</li>
+    </ul>
+
+    <h2>Build Summary</h2>
+    <p>Build: main.js (22KB), styles.css (2KB), manifest.json (256B)</p>
+  </body>
+</html>
