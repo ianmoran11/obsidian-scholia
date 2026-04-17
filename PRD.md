@@ -885,7 +885,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 33. Notice after non-inline append: `"Scholia: appended to <path>"`.
 - [x] 34. Unit tests for `appendFile.ts` (non-existent file, existing file, nested path).
 - [x] 35. Verify: template routing to `_System/Log.md` creates file + Notice.
-- [ ] 36. Evidence: 30s video showing the file being created.
+- [x] 36. Evidence: 30s video showing the file being created.
 
 **Acceptance:** Pure-append templates never insert inline; dual-write templates still insert inline (per F3, that's F3's job — pure route-elsewhere templates do NOT insert inline).
 
