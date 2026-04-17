@@ -880,8 +880,8 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 
 **Goal:** Inline vs filepath routing works; capture appends silently.
 
-- [ ] 31. Implement `src/storage/appendFile.ts` with parent auto-create, idempotent existence check.
-- [ ] 32. Extend runner to branch on `output_destination === "inline"` vs a path.
+- [x] 31. Implement `src/storage/appendFile.ts` with parent auto-create, idempotent existence check.
+- [x] 32. Extend runner to branch on `output_destination === "inline"` vs a path.
 - [ ] 33. Notice after non-inline append: `"Scholia: appended to <path>"`.
 - [ ] 34. Unit tests for `appendFile.ts` (non-existent file, existing file, nested path).
 - [ ] 35. Verify: template routing to `_System/Log.md` creates file + Notice.

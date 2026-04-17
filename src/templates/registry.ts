@@ -8,6 +8,7 @@ import { Stream } from "../stream/stream";
 import { OpenRouterClient } from "../llm/openrouter";
 import { LlmRequest } from "../llm/client";
 import { extractContext } from "../context/extractor";
+import { appendToVault } from "../storage/appendFile";
 
 interface RegisteredTemplate {
   file: TFile;
@@ -262,6 +263,44 @@ export class TemplateRegistry {
       config.contextScope,
     );
 
+    const model = config.model ?? this.plugin.settings.defaultModel;
+    const temperature =
+      config.temperature ?? this.plugin.settings.defaultTemperature;
+    const maxTokens = config.maxTokens ?? this.plugin.settings.defaultMaxTokens;
+
+    const llmClient = new OpenRouterClient(apiKey);
+    const llmRequest: LlmRequest = {
+      model,
+      temperature,
+      maxTokens,
+      system: config.systemPrompt,
+      user: contextText,
+    };
+
+    if (config.outputDestination === "inline") {
+      await this.runInline(
+        templateName,
+        config,
+        view,
+        editor,
+        selection,
+        llmClient,
+        llmRequest,
+      );
+    } else {
+      await this.runAppend(templateName, config, view, llmClient, llmRequest);
+    }
+  }
+
+  private async runInline(
+    templateName: string,
+    config: TemplateConfig,
+    view: MarkdownView,
+    editor: import("obsidian").Editor,
+    selection: string,
+    llmClient: OpenRouterClient,
+    llmRequest: LlmRequest,
+  ): Promise<void> {
     const calloutType =
       config.calloutType ?? this.plugin.settings.defaultCalloutType;
     const calloutLabel = config.calloutLabel ?? templateName;
@@ -283,26 +322,51 @@ export class TemplateRegistry {
       posAfterSelection,
     );
 
-    const model = config.model ?? this.plugin.settings.defaultModel;
-    const temperature =
-      config.temperature ?? this.plugin.settings.defaultTemperature;
-    const maxTokens = config.maxTokens ?? this.plugin.settings.defaultMaxTokens;
-
-    const llmClient = new OpenRouterClient(apiKey);
-    const llmRequest: LlmRequest = {
-      model,
-      temperature,
-      maxTokens,
-      system: config.systemPrompt,
-      user: contextText,
-    };
-
     try {
       await stream.start(llmClient.stream(llmRequest, stream.abort.signal));
     } catch (err) {
       stream.abortWithError(
         err instanceof Error ? err.message : "Stream failed",
       );
+    }
+  }
+
+  private async runAppend(
+    templateName: string,
+    config: TemplateConfig,
+    view: MarkdownView,
+    llmClient: OpenRouterClient,
+    llmRequest: LlmRequest,
+  ): Promise<void> {
+    const abortController = new AbortController();
+    let accumulatedContent = "";
+
+    try {
+      for await (const chunk of llmClient.stream(
+        llmRequest,
+        abortController.signal,
+      )) {
+        accumulatedContent += chunk;
+      }
+
+      const destPath = config.outputDestination as string;
+      const appendFormat = config.appendFormat ?? "markdown";
+
+      await appendToVault(this.app.vault, {
+        relativePath: destPath,
+        content: accumulatedContent,
+        format: appendFormat,
+        sourcePath: view.file?.path,
+        templateName,
+      });
+
+      new Notice(`Scholia: appended to ${destPath}`);
+    } catch (err) {
+      if (!abortController.signal.aborted) {
+        new Notice(
+          `Scholia: ${err instanceof Error ? err.message : "Append failed"}`,
+        );
+      }
     }
   }
 
