@@ -823,7 +823,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 **Goal:** Installable plugin loads in test-vault, settings UI renders, CSS snippets visible.
 
 - [x] 1. Initialise from `obsidian-sample-plugin` (copy `main.ts`, `manifest.json`, `styles.css`, `esbuild.config.mjs`, `tsconfig.json`, `package.json` into this repo root where missing).
-- [ ] 2. Set `manifest.json`: `id: "scholia"`, `name: "Scholia"`, `version: "0.1.0"`, `minAppVersion: "1.5.0"`, `description: "Active-reading AI annotations for Obsidian."`, `isDesktopOnly: false`.
+- [x] 2. Set `manifest.json`: `id: "scholia"`, `name: "Scholia"`, `version: "0.1.0"`, `minAppVersion: "1.5.0"`, `description: "Active-reading AI annotations for Obsidian."`, `isDesktopOnly: false`.
 - [ ] 3. Create `src/settings.ts` with `ScholiaSettings`, `DEFAULT_SETTINGS`, `ScholiaSettingTab` wired per §9.
 - [ ] 4. Create `src/styles.css` with callout palette per §14; copy to repo root in build step.
 - [ ] 5. Create `scripts/install-to-vault.sh` that symlinks `./` into `test-vault/.obsidian/plugins/scholia/`.
