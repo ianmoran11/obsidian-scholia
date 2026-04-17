@@ -883,7 +883,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 31. Implement `src/storage/appendFile.ts` with parent auto-create, idempotent existence check.
 - [x] 32. Extend runner to branch on `output_destination === "inline"` vs a path.
 - [x] 33. Notice after non-inline append: `"Scholia: appended to <path>"`.
-- [ ] 34. Unit tests for `appendFile.ts` (non-existent file, existing file, nested path).
+- [x] 34. Unit tests for `appendFile.ts` (non-existent file, existing file, nested path).
 - [ ] 35. Verify: template routing to `_System/Log.md` creates file + Notice.
 - [ ] 36. Evidence: 30s video showing the file being created.
 
