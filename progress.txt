@@ -700,3 +700,34 @@ Tasks completed: 37
 Input-tokens: 9000
 Output-tokens: 1200
 
+--- Iteration 30 [2026-04-17 23:03:56] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 49
+Tasks completed: 37
+Input-tokens: 28101
+Output-tokens: 2772
+Cache-tokens: 338832
+
+
+
+## Iteration 31
+Task: M5.35 - Verify: template routing to `_System/Log.md` creates file + Notice
+Verification approach: Code review + unit tests + build verification
+Files verified:
+- src/storage/appendFile.ts: appendToVault creates parent folders, creates file with header if missing, appends to existing file, Notice shown after append
+- src/templates/registry.ts:363: Notice message format: "Scholia: appended to <path>"
+Implementation review:
+- runAppend method (registry.ts:334-371) correctly routes to filepath destination
+- appendToVault (appendFile.ts:60-91) handles non-existent file creation with "# Captures\n\n" header
+- ensureFolderExists (appendFile.ts:13-30) auto-creates parent folders
+Verification:
+- npm test: 100 tests passed (12 appendFile tests included)
+- npm run build: SUCCESS (no TS errors)
+Note: Task 35 is verification of already-implemented functionality. GUI verification (task 36) requires display environment.
+
+--- Iteration 31 [2026-04-17 23:05:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 52
+Tasks completed: 38
