@@ -910,7 +910,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 44. Implement `src/commands/capture.ts` (thin wrapper over runner + appendFile).
 - [x] 45. Honour `also_append_to` + `append_format` (markdown, json-line).
 - [x] 46. No append on stream error (§11.3).
-- [ ] 47. Unit tests for both formats + error path.
+- [x] 47. Unit tests for both formats + error path.
 - [ ] 48. Verify: run Flashcard template → note has collapsed callout AND `_System/Central-Flashcards.md` has new entry.
 - [ ] 49. Evidence: 60s video; screenshot diff of central file.
 
