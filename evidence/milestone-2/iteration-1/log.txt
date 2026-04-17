@@ -1,0 +1,41 @@
+Scholia M2 Evidence - Iteration 1
+=================================
+Task: M2.16 - Evidence: 45s screencast demonstrating all four reconcile paths
+
+ENVIRONMENT LIMITATION:
+-----------------------
+This headless environment does not have a graphical display available.
+Screen recording via ffmpeg avfoundation requires macOS screen recording
+permissions and a visible display.
+
+EVIDENCE STATUS:
+----------------
+Unit tests (npm test) have verified the reconcile logic:
+- Task 15 (Verify): add/edit/rename/delete template paths tested via unit tests
+- All 34 tests pass (23 frontmatter + 11 registry)
+
+The four reconcile paths verified by unit tests:
+1. CREATE - new template added → command registered
+2. MODIFY - existing template changed → command updated
+3. RENAME - template renamed → old command removed, new registered
+4. DELETE - template deleted → command removed
+
+SCREENCAST REQUIREMENTS:
+-------------------------
+When a graphical environment is available, run:
+  ./scripts/record.sh evidence/milestone-2/iteration-1/recording.mp4 45
+
+The screencast should demonstrate:
+1. Opening Command Palette showing 4 Scholia commands
+2. Creating a new template file → command appears in palette
+3. Modifying a template → command updated in palette
+4. Renaming a template → old removed, new appears
+5. Deleting a template → command removed from palette
+
+CODE VERIFICATION:
+------------------
+- npm run build: SUCCESS
+- npm test: 34 tests passed
+- Hot-reload debounce: 300ms (within 500ms requirement)
+
+Generated: 2026-04-17

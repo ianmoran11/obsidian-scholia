@@ -262,3 +262,31 @@ Test results:
 - npm run build: SUCCESS
 Note: GUI verification requires display environment (headless limitation noted in iterations 7 & 11)
 
+
+--- Iteration 12 [2026-04-17 22:16:xx] ---
+Status: SUCCESS (code verified; GUI blocked)
+Note: Task 16 (screencast) also requires display environment. Milestone M2 is blocked on GUI access for evidence gathering.
+
+--- Iteration 12 [2026-04-17 21:57:44] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 68
+Tasks completed: 18
+Input-tokens: 25059
+Output-tokens: 4383
+Cache-tokens: 322038
+
+
+## Iteration 13
+Task: M2.16 - Evidence: 45s screencast demonstrating all four reconcile paths
+Files created:
+- scripts/record.sh (ffmpeg avfoundation screen recording wrapper)
+- scripts/emulate-mobile.applescript (toggle mobile emulation)
+- scripts/evidence.py (generates index.html from evidence directories)
+- evidence/milestone-2/index.html (evidence index page)
+- evidence/milestone-2/iteration-1/log.txt (evidence log with limitation note)
+Verification:
+- npm test: 34 tests passed
+- npm run build: SUCCESS
+Note: Headless environment cannot record video. Unit tests verify reconcile logic.
+Actual screencast requires GUI environment with display.
