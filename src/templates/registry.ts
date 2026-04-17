@@ -1,9 +1,12 @@
-import { App, Command, Notice, TFile, TFolder } from "obsidian";
+import { App, Command, MarkdownView, Notice, TFile, TFolder } from "obsidian";
 import { debounce } from "../util/debounce";
 import { removeCommand } from "../util/removeCommand";
 import { buildCommandId } from "../util/ids";
 import { parseFrontmatter, ParseResult } from "./frontmatter";
 import type { TemplateConfig } from "./types";
+import { Stream } from "../stream/stream";
+import { OpenRouterClient } from "../llm/openrouter";
+import { LlmRequest } from "../llm/client";
 
 interface RegisteredTemplate {
   file: TFile;
@@ -17,6 +20,7 @@ export class TemplateRegistry {
   private plugin: {
     app: App;
     settings: {
+      openRouterApiKey: string;
       templatesFolder: string;
       defaultCalloutType: string;
       defaultModel: string;
@@ -31,6 +35,7 @@ export class TemplateRegistry {
     plugin: {
       app: App;
       settings: {
+        openRouterApiKey: string;
         templatesFolder: string;
         defaultCalloutType: string;
         defaultModel: string;
@@ -80,7 +85,7 @@ export class TemplateRegistry {
       id: commandId,
       name: `${config.commandPrefix}: ${templateName}`,
       callback: () => {
-        new Notice(`${templateName}: context=${config.contextScope}`);
+        this.runTemplateCommand(file.path, config, templateName);
       },
     };
 
@@ -216,6 +221,88 @@ export class TemplateRegistry {
           await this.loadTemplate(file);
         }
       }
+    }
+  }
+
+  private async runTemplateCommand(
+    templatePath: string,
+    config: TemplateConfig,
+    templateName: string,
+  ): Promise<void> {
+    const apiKey = this.plugin.settings.openRouterApiKey;
+    if (!apiKey) {
+      new Notice("Scholia: OpenRouter API key not set. Configure in Settings.");
+      return;
+    }
+
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      new Notice("Scholia: No active note editor.");
+      return;
+    }
+
+    const editor = view.editor;
+    const selection = editor.getSelection();
+
+    if (config.requiresSelection && !selection) {
+      new Notice("Scholia: Select text first.");
+      return;
+    }
+
+    if (config.contextScope === "selection" && !selection) {
+      new Notice("Scholia: Select text first.");
+      return;
+    }
+
+    let contextText = selection;
+    if (
+      config.contextScope === "heading" ||
+      config.contextScope === "full-note"
+    ) {
+      contextText = editor.getValue();
+    }
+
+    const calloutType =
+      config.calloutType ?? this.plugin.settings.defaultCalloutType;
+    const calloutLabel = config.calloutLabel ?? templateName;
+    const calloutFolded = config.calloutFolded ?? true;
+
+    const posAfterSelection = editor.getCursor("to");
+
+    const streamId = `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const stream = new Stream(streamId, view.file?.path ?? "", editor, view);
+
+    stream.insertSkeleton(
+      {
+        calloutType,
+        calloutLabel,
+        folded: calloutFolded,
+        commandName: templateName,
+        selectionText: selection,
+      },
+      posAfterSelection,
+    );
+
+    const model = config.model ?? this.plugin.settings.defaultModel;
+    const temperature =
+      config.temperature ?? this.plugin.settings.defaultTemperature;
+    const maxTokens = config.maxTokens ?? this.plugin.settings.defaultMaxTokens;
+
+    const llmClient = new OpenRouterClient(apiKey);
+    const llmRequest: LlmRequest = {
+      model,
+      temperature,
+      maxTokens,
+      system: config.systemPrompt,
+      user: contextText,
+    };
+
+    try {
+      await stream.start(llmClient.stream(llmRequest, stream.abort.signal));
+    } catch (err) {
+      stream.abortWithError(
+        err instanceof Error ? err.message : "Stream failed",
+      );
     }
   }
 

@@ -856,8 +856,8 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 18. Implement `src/llm/openrouter.ts`.
 - [x] 19. Implement `src/stream/callout.ts` (`buildSkeleton`, `appendToCallout`, `formatError`).
 - [x] 20. Implement `src/stream/stream.ts` minimal (no pin-to-range yet — static offset).
-- [ ] 21. Wire `Clarify.md` command to: extract selection, build skeleton, call OpenRouter, pipe chunks to callout.
-- [ ] 22. Error path: if API key missing → Notice + abort before skeleton.
+- [x] 21. Wire `Clarify.md` command to: extract selection, build skeleton, call OpenRouter, pipe chunks to callout.
+- [x] 22. Error path: if API key missing → Notice + abort before skeleton.
 - [ ] 23. Verify with live OpenRouter key: select text → run Clarify → see streamed callout.
 - [ ] 24. Evidence: 60s video with audible narration describing what's happening.
 

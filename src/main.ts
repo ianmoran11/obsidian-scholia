@@ -19,6 +19,7 @@ export default class ScholiaPlugin extends Plugin {
       this as unknown as {
         app: App;
         settings: {
+          openRouterApiKey: string;
           templatesFolder: string;
           defaultCalloutType: string;
           defaultModel: string;
