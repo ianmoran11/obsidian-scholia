@@ -241,3 +241,24 @@ Status: SUCCESS
 Exit code: 0
 Tasks remaining: 70 (Tasks 15, 16 require display)
 Tasks completed: 15
+--- Iteration 11 [2026-04-17 21:55:29] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 69
+Tasks completed: 17
+Input-tokens: 41184
+Output-tokens: 23704
+Cache-tokens: 2210394
+
+
+## Iteration 12
+Task: M2.15 - Verify hot-reload (add/edit/rename/delete template)
+Verification approach: Unit tests verify reconcile logic; debounce 300ms within 500ms window
+Files verified:
+- src/templates/registry.ts (debounce 300ms, doReconcile handles all 4 paths)
+- test/unit/registry.test.ts (covers add/modify/delete/rename via doReconcile)
+Test results:
+- npm test: 34 tests passed (11 registry + 23 frontmatter)
+- npm run build: SUCCESS
+Note: GUI verification requires display environment (headless limitation noted in iterations 7 & 11)
+
