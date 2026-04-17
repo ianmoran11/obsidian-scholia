@@ -9,7 +9,7 @@ export interface CustomProbeResult {
 
 export class CustomProbeModal extends Modal {
   private query: string = "";
-  private scope: ContextScope;
+  private contextScope: ContextScope;
   private alsoAppendToCentral: boolean = false;
   private errorEl: HTMLElement | null = null;
   private resolvePromise: ((result: CustomProbeResult | null) => void) | null =
@@ -20,7 +20,7 @@ export class CustomProbeModal extends Modal {
     private templateConfig: TemplateConfig,
   ) {
     super(app);
-    this.scope = templateConfig.contextScope;
+    this.contextScope = templateConfig.contextScope;
     this.alsoAppendToCentral = !!templateConfig.alsoAppendTo;
   }
 
@@ -58,32 +58,32 @@ export class CustomProbeModal extends Modal {
 
     const scopeContainer = formEl.createDiv("custom-probe-scopes");
     const scopes: ContextScope[] = ["selection", "heading", "full-note"];
-    for (const scope of scopes) {
+    for (const s of scopes) {
       const radioWrapper = scopeContainer.createDiv("radio-wrapper");
       const radio = radioWrapper.createEl("input", {
         type: "radio",
-        name: "context-scope",
-        value: scope,
+        value: s,
       });
-      radio.id = `scope-${scope}`;
-      if (scope === this.scope) {
+      radio.setAttr("name", "context-scope");
+      radio.id = `scope-${s}`;
+      if (s === this.contextScope) {
         radio.setAttr("checked", "checked");
       }
       radioWrapper.createEl("label", {
-        text: scope,
-        attr: { for: `scope-${scope}` },
+        text: s,
+        attr: { for: `scope-${s}` },
       });
 
       radio.onclick = () => {
-        this.scope = scope;
+        this.contextScope = s;
       };
     }
 
     const checkboxWrapper = formEl.createDiv("checkbox-wrapper");
     const checkbox = checkboxWrapper.createEl("input", {
       type: "checkbox",
-      id: "also-append-central",
     });
+    checkbox.id = "also-append-central";
     checkbox.checked = this.alsoAppendToCentral;
     checkboxWrapper.createEl("label", {
       text: "Also append to central capture file",
@@ -146,7 +146,7 @@ export class CustomProbeModal extends Modal {
     this.close();
     this.resolvePromise?.({
       query: this.query,
-      scope: this.scope,
+      scope: this.contextScope,
       alsoAppendToCentral: this.alsoAppendToCentral,
     });
   }

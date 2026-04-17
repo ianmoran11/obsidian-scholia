@@ -2,13 +2,13 @@ import { describe, it, expect, vi } from "vitest";
 import { extractContext } from "../../src/context/extractor";
 import { stripForTokens } from "../../src/context/stripper";
 
-function createMockApp(
-  headings: Array<{
-    level: number;
-    heading: string;
-    pos: { start: number; end: number };
-  }>,
-) {
+type MockHeading = {
+  level: number;
+  heading: string;
+  position: { start: { line: number; col: number; offset: number }; end: { line: number; col: number; offset: number } };
+};
+
+function createMockApp(headings: MockHeading[]) {
   return {
     metadataCache: {
       getFileCache: vi.fn(() => ({ headings })),
@@ -56,26 +56,25 @@ const createMockView = (filePath: string = "test.md") => ({
 function computeHeadingPositions(
   content: string,
   headingLineNumbers: number[],
-) {
+): MockHeading[] {
   const lines = content.split("\n");
-  const headings: Array<{
-    level: number;
-    heading: string;
-    pos: { start: number; end: number };
-  }> = [];
+  const headings: MockHeading[] = [];
 
   let offset = 0;
   for (let i = 0; i < lines.length; i++) {
+    const lineStart = offset;
     offset += lines[i].length + 1;
     if (headingLineNumbers.includes(i)) {
       const levelMatch = lines[i].match(/^(#+)/);
       const level = levelMatch ? levelMatch[1].length : 1;
       const headingText = lines[i].replace(/^#+\s*/, "");
-      let startOffset = offset - lines[i].length - 1;
       headings.push({
         level,
         heading: headingText,
-        pos: { start: startOffset, end: startOffset + lines[i].length },
+        position: {
+          start: { line: i, col: 0, offset: lineStart },
+          end: { line: i, col: lines[i].length, offset: lineStart + lines[i].length },
+        },
       });
     }
   }

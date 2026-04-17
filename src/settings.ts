@@ -1,4 +1,13 @@
-import { App, Notice, Setting, Suggest, TFolder } from "obsidian";
+import {
+  AbstractInputSuggest,
+  App,
+  Notice,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  TFolder,
+} from "obsidian";
+import type ScholiaPlugin from "./main";
 
 export interface ScholiaSettings {
   openRouterApiKey: string;
@@ -24,26 +33,20 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   enableHotReloadOfTemplates: true,
 };
 
-class FolderSuggest extends Suggest<TFolder> {
-  private folders: TFolder[] = [];
-  private onSelect: (folder: TFolder) => void;
-
-  constructor(app: App, onSelect: (folder: TFolder) => void) {
-    super(app);
-    this.onSelect = onSelect;
+class FolderSuggest extends AbstractInputSuggest<TFolder> {
+  constructor(
+    app: App,
+    inputEl: HTMLInputElement,
+    private onSelectCb: (folder: TFolder) => void,
+  ) {
+    super(app, inputEl);
   }
-
-  parseTemplates: (value: string) => TFolder | null = (
-    value: string,
-  ): TFolder | null => {
-    return this.app.vault.getAllFolders().find((f) => f.path === value) ?? null;
-  };
 
   getSuggestions(query: string): TFolder[] {
     const lower = query.toLowerCase();
     return this.app.vault
       .getAllFolders()
-      .filter((f) => f.path.toLowerCase().contains(lower));
+      .filter((f) => f.path.toLowerCase().includes(lower));
   }
 
   renderSuggestion(folder: TFolder, el: HTMLElement): void {
@@ -51,25 +54,17 @@ class FolderSuggest extends Suggest<TFolder> {
   }
 
   selectSuggestion(folder: TFolder): void {
-    this.onSelect(folder);
+    this.setValue(folder.path);
+    this.close();
+    this.onSelectCb(folder);
   }
 }
 
-export class ScholiaSettingTab {
-  plugin: {
-    settings: ScholiaSettings;
-    saveSettings: () => Promise<void>;
-    app: App;
-  };
+export class ScholiaSettingTab extends PluginSettingTab {
+  declare plugin: ScholiaPlugin;
 
-  constructor(
-    app: App,
-    plugin: {
-      settings: ScholiaSettings;
-      saveSettings: () => Promise<void>;
-      app: App;
-    },
-  ) {
+  constructor(app: App, plugin: ScholiaPlugin) {
+    super(app, plugin as unknown as Plugin);
     this.plugin = plugin;
   }
 
@@ -81,39 +76,40 @@ export class ScholiaSettingTab {
     new Setting(containerEl)
       .setName("OpenRouter API Key")
       .setDesc("API key for OpenRouter (https://openrouter.ai)")
-      .addText(
-        (text) =>
-          (text.inputEl.type = "password"
-            .setValue(this.plugin.settings.openRouterApiKey)
-            .onChange(async (value) => {
-              this.plugin.settings.openRouterApiKey = value;
-              await this.plugin.saveSettings();
-            })),
-      );
+      .addText((text) => {
+        text.inputEl.type = "password";
+        text
+          .setValue(this.plugin.settings.openRouterApiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.openRouterApiKey = value;
+            await this.plugin.saveSettings();
+          });
+      });
 
-    const modelDatalist = containerEl.createEl("datalist", {
-      attr: { id: "model-datalist" },
-    });
+    const modelDatalist = containerEl.createEl("datalist");
+    modelDatalist.id = "scholia-model-datalist";
     const modelSlugs = [
       "z-ai/glm-5.1",
       "anthropic/claude-3-haiku",
       "openai/gpt-4o-mini",
       "google/gemini-pro",
     ];
-    modelDatalist.setText(modelSlugs.join("\n"));
+    for (const slug of modelSlugs) {
+      modelDatalist.createEl("option", { value: slug });
+    }
 
     new Setting(containerEl)
       .setName("Default Model")
       .setDesc("OpenRouter model slug")
-      .addText(
-        (text) =>
-          (text.inputEl.list = "model-datalist"
-            .setValue(this.plugin.settings.defaultModel)
-            .onChange(async (value) => {
-              this.plugin.settings.defaultModel = value;
-              await this.plugin.saveSettings();
-            })),
-      );
+      .addText((text) => {
+        text.inputEl.setAttribute("list", "scholia-model-datalist");
+        text
+          .setValue(this.plugin.settings.defaultModel)
+          .onChange(async (value) => {
+            this.plugin.settings.defaultModel = value;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Default Temperature")
@@ -132,35 +128,32 @@ export class ScholiaSettingTab {
     new Setting(containerEl)
       .setName("Default Max Tokens")
       .setDesc("Maximum tokens in response (128–8192)")
-      .addText(
-        (text) =>
-          (text.inputEl.type = "number"
-            .setValue(String(this.plugin.settings.defaultMaxTokens))
-            .onChange(async (value) => {
-              const num = Math.min(
-                8192,
-                Math.max(128, parseInt(value) || 1024),
-              );
-              this.plugin.settings.defaultMaxTokens = num;
-              await this.plugin.saveSettings();
-            })),
-      );
+      .addText((text) => {
+        text.inputEl.type = "number";
+        text
+          .setValue(String(this.plugin.settings.defaultMaxTokens))
+          .onChange(async (value) => {
+            const num = Math.min(
+              8192,
+              Math.max(128, parseInt(value) || 1024),
+            );
+            this.plugin.settings.defaultMaxTokens = num;
+            await this.plugin.saveSettings();
+          });
+      });
 
-    let templatesFolderValue = this.plugin.settings.templatesFolder;
     new Setting(containerEl)
       .setName("Templates Folder")
       .setDesc("Folder containing template markdown files")
       .addText((text) => {
-        text.setValue(templatesFolderValue);
+        text.setValue(this.plugin.settings.templatesFolder);
         text.inputEl.placeholder = "Edu-Templates";
-        new FolderSuggest(this.plugin.app, (folder) => {
-          templatesFolderValue = folder.path;
+        new FolderSuggest(this.plugin.app, text.inputEl, (folder) => {
           text.setValue(folder.path);
           this.plugin.settings.templatesFolder = folder.path;
           this.plugin.saveSettings();
         });
         text.onChange(async (value) => {
-          templatesFolderValue = value;
           this.plugin.settings.templatesFolder = value;
           await this.plugin.saveSettings();
         });
@@ -227,7 +220,15 @@ export class ScholiaSettingTab {
             this.plugin.settings.templatesFolder,
           );
           if (folder) {
-            this.plugin.app.workspace.getLeaf(true).openFolder(folder);
+            const explorerLeaves =
+              this.plugin.app.workspace.getLeavesOfType("file-explorer");
+            if (explorerLeaves.length > 0) {
+              await this.plugin.app.workspace.revealLeaf(explorerLeaves[0]);
+            } else {
+              new Notice(
+                `Templates folder: ${this.plugin.settings.templatesFolder}`,
+              );
+            }
           } else {
             new Notice(
               `Templates folder "${this.plugin.settings.templatesFolder}" not found`,

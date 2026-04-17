@@ -1,4 +1,5 @@
 import { Notice } from "obsidian";
+import type { Hotkey } from "obsidian";
 import type {
   ContextScope,
   OutputDestination,
@@ -20,6 +21,7 @@ const CALLOUT_TYPE_REGEX = /^[a-z][a-z0-9-]*$/;
 export interface ParseResult {
   config: TemplateConfig;
   warnings: string[];
+  isValid: boolean;
 }
 
 export function parseFrontmatter(
@@ -49,6 +51,7 @@ export function parseFrontmatter(
         systemPrompt,
       } as TemplateConfig,
       warnings,
+      isValid: false,
     };
   }
 
@@ -72,6 +75,7 @@ export function parseFrontmatter(
         systemPrompt,
       } as TemplateConfig,
       warnings,
+      isValid: false,
     };
   }
 
@@ -164,7 +168,7 @@ export function parseFrontmatter(
       }
     }
     if (validHotkeys.length > 0) {
-      config.hotkey = validHotkeys;
+      config.hotkey = validHotkeys as unknown as Hotkey[];
     } else {
       config.hotkey = [];
     }
@@ -186,5 +190,5 @@ export function parseFrontmatter(
     config.appendFormat = "markdown";
   }
 
-  return { config: config as TemplateConfig, warnings };
+  return { config: config as TemplateConfig, warnings, isValid: true };
 }

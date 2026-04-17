@@ -1,12 +1,12 @@
-import type { App, Editor, MarkdownView } from "obsidian";
-import type { Scope } from "../templates/types";
+import type { App, Editor, HeadingCache, MarkdownView } from "obsidian";
+import type { ContextScope } from "../templates/types";
 import { stripForTokens } from "./stripper";
 
 export function extractContext(
   app: App,
   editor: Editor,
   view: MarkdownView,
-  scope: Scope,
+  scope: ContextScope,
 ): string {
   switch (scope) {
     case "selection":
@@ -15,6 +15,8 @@ export function extractContext(
       return extractHeadingSection(app, editor, view);
     case "full-note":
       return stripForTokens(editor.getValue());
+    default:
+      return editor.getSelection();
   }
 }
 
@@ -26,7 +28,7 @@ function extractHeadingSection(
   if (!view.file) return stripForTokens(editor.getValue());
 
   const cache = app.metadataCache.getFileCache(view.file);
-  const headings = cache?.headings ?? [];
+  const headings: HeadingCache[] = cache?.headings ?? [];
 
   if (headings.length === 0) {
     return stripForTokens(editor.getValue());
@@ -34,22 +36,14 @@ function extractHeadingSection(
 
   const cursorOffset = editor.posToOffset(editor.getCursor("head"));
 
-  let startHeading: {
-    level: number;
-    heading: string;
-    pos: { start: number; end: number };
-  } | null = null;
-  let endHeading: {
-    level: number;
-    heading: string;
-    pos: { start: number; end: number };
-  } | null = null;
+  let startHeading: HeadingCache | null = null;
+  let endHeading: HeadingCache | null = null;
 
   for (const heading of headings) {
-    if (heading.pos.start <= cursorOffset) {
+    if (heading.position.start.offset <= cursorOffset) {
       startHeading = heading;
     }
-    if (heading.pos.start > cursorOffset && !endHeading) {
+    if (heading.position.start.offset > cursorOffset && !endHeading) {
       endHeading = heading;
       break;
     }
@@ -59,9 +53,9 @@ function extractHeadingSection(
     return stripForTokens(editor.getValue());
   }
 
-  const startOffset = startHeading.pos.start;
+  const startOffset = startHeading.position.start.offset;
   const endOffset = endHeading
-    ? endHeading.pos.start
+    ? endHeading.position.start.offset
     : editor.getValue().length;
 
   const startPos = editor.offsetToPos(startOffset);

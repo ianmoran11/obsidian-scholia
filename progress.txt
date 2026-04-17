@@ -1457,6 +1457,23 @@ Input-tokens: 41968
 Output-tokens: 759
 Cache-tokens: 34336
 
+--- Iteration 63 [2026-04-18 01:13:00] ---
+Task: Fix broken registry tests (8 failures)
+Status: SUCCESS
+Exit code: 0
+
+Files changed:
+- src/templates/registry.ts (added PluginRef interface for proper typing in tests; use PluginRef.addCommand instead of direct plugin reference)
+- test/unit/registry.test.ts (fixed createPlugin to properly wire addCommand to mock app's commands map; added mockStreamManager)
+
+Fix details:
+- The test was failing because TemplateRegistry.loadTemplate called this.plugin.addCommand but the mock plugin didn't have addCommand wired to the mock app
+- Fixed by adding PluginRef interface and properly wiring addCommand in the test mock
+
+Verification:
+- npm test: 143 tests passed (was 8 failures before)
+- npm run build: SUCCESS
+
 --- Iteration 62 [2026-04-18 00:27:06] ---
 Status: SUCCESS
 Exit code: 0
@@ -1642,4 +1659,22 @@ Tasks completed: 83
 Input-tokens: 34337
 Output-tokens: 1827
 Cache-tokens: 158044
+
+--- Iteration 77 [2026-04-18 01:10:39] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 3
+Tasks completed: 83
+Input-tokens: 2902
+Output-tokens: 1789
+Cache-tokens: 340032
+
+--- Iteration 78 [2026-04-18 01:11:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 3
+Tasks completed: 83
+Input-tokens: 70071
+Output-tokens: 527
+Cache-tokens: 28358
 

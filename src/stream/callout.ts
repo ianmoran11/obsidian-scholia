@@ -1,3 +1,5 @@
+import { Editor } from "obsidian";
+
 export interface BuildSkeletonOpts {
   calloutType: string;
   calloutLabel: string;

@@ -5,12 +5,27 @@ import { buildCommandId } from "../util/ids";
 import { parseFrontmatter, ParseResult } from "./frontmatter";
 import type { TemplateConfig } from "./types";
 import { Stream } from "../stream/stream";
+import { StreamManager } from "../stream/manager";
 import { OpenRouterClient } from "../llm/openrouter";
 import { LlmRequest } from "../llm/client";
 import { extractContext } from "../context/extractor";
 import { appendToVault } from "../storage/appendFile";
+import { formatError } from "../stream/callout";
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
+
+interface PluginRef {
+  app: App;
+  addCommand: (command: Command) => Command;
+  settings: {
+    openRouterApiKey: string;
+    templatesFolder: string;
+    defaultCalloutType: string;
+    defaultModel: string;
+    defaultTemperature: number;
+    defaultMaxTokens: number;
+  };
+}
 
 interface RegisteredTemplate {
   file: TFile;
@@ -21,37 +36,13 @@ interface RegisteredTemplate {
 export class TemplateRegistry {
   private templates: Map<string, RegisteredTemplate> = new Map();
   private app: App;
-  private plugin: {
-    app: App;
-    settings: {
-      openRouterApiKey: string;
-      templatesFolder: string;
-      defaultCalloutType: string;
-      defaultModel: string;
-      defaultTemperature: number;
-      defaultMaxTokens: number;
-    };
-  };
-  private onSettingsChange: () => void;
+  private plugin: PluginRef;
+  private streamManager: StreamManager;
 
-  constructor(
-    app: App,
-    plugin: {
-      app: App;
-      settings: {
-        openRouterApiKey: string;
-        templatesFolder: string;
-        defaultCalloutType: string;
-        defaultModel: string;
-        defaultTemperature: number;
-        defaultMaxTokens: number;
-      };
-    },
-    onSettingsChange: () => void,
-  ) {
+  constructor(app: App, plugin: PluginRef, streamManager: StreamManager) {
     this.app = app;
     this.plugin = plugin;
-    this.onSettingsChange = onSettingsChange;
+    this.streamManager = streamManager;
   }
 
   async load(): Promise<void> {
@@ -77,16 +68,16 @@ export class TemplateRegistry {
 
   private async loadTemplate(file: TFile): Promise<boolean> {
     const result = await this.parseTemplate(file);
-    if (!result) {
+    if (!result || !result.isValid) {
       return false;
     }
 
     const { config } = result;
-    const commandId = buildCommandId(file.path);
+    const rawCommandId = buildCommandId(file.path);
     const templateName = this.getTemplateName(file.path);
 
     const command: Command = {
-      id: commandId,
+      id: rawCommandId,
       name: `${config.commandPrefix}: ${templateName}`,
       callback: () => {
         this.runTemplateCommand(file.path, config, templateName);
@@ -97,11 +88,9 @@ export class TemplateRegistry {
       (command as Command & { hotkeys: unknown[] }).hotkeys = config.hotkey;
     }
 
-    (
-      this.app as unknown as {
-        commands: { addCommand: (cmd: Command) => void };
-      }
-    ).commands.addCommand(command);
+    const registered = this.plugin.addCommand(command);
+    // Plugin.addCommand prefixes the id with the plugin id (e.g. "scholia:...")
+    const commandId = registered.id;
 
     this.templates.set(file.path, {
       file,
@@ -165,6 +154,8 @@ export class TemplateRegistry {
           result[key] = trimmedValue.slice(1, -1);
         } else if (trimmedValue.startsWith("'") && trimmedValue.endsWith("'")) {
           result[key] = trimmedValue.slice(1, -1);
+        } else if (trimmedValue === "[]") {
+          result[key] = [];
         } else {
           result[key] = trimmedValue;
         }
@@ -180,15 +171,11 @@ export class TemplateRegistry {
     return fileName.replace(/\.md$/, "");
   }
 
-  private getTemplateFolder(): TFolder | null {
-    return this.app.vault.getFolderByPath(this.plugin.settings.templatesFolder);
-  }
-
   reconcile = debounce(async () => {
     await this.doReconcile();
   }, 300);
 
-  private async doReconcile(): Promise<void> {
+  async doReconcile(): Promise<void> {
     const currentPaths = new Set<string>();
     const files = this.app.vault.getMarkdownFiles();
 
@@ -338,6 +325,13 @@ export class TemplateRegistry {
       posAfterSelection,
     );
 
+    if (!this.streamManager.addStream(stream)) {
+      new Notice("Scholia: Too many concurrent streams. Please wait.");
+      return;
+    }
+
+    const cleanup = () => this.streamManager.removeStream(streamId);
+
     if (config.alsoAppendTo) {
       const captureRunner = new CaptureRunner(this.app);
       try {
@@ -352,18 +346,30 @@ export class TemplateRegistry {
           templateName,
         );
       } catch (err) {
-        stream.abortWithError(
-          err instanceof Error ? err.message : "Stream failed",
-        );
+        const msg = err instanceof Error ? err.message : "Stream failed";
+        await this.writeStreamError(stream, msg);
+        new Notice(`Scholia: ${msg}`);
+      } finally {
+        cleanup();
       }
     } else {
       try {
         await stream.start(llmClient.stream(llmRequest, stream.abort.signal));
       } catch (err) {
-        stream.abortWithError(
-          err instanceof Error ? err.message : "Stream failed",
-        );
+        const msg = err instanceof Error ? err.message : "Stream failed";
+        await this.writeStreamError(stream, msg);
+        new Notice(`Scholia: ${msg}`);
+      } finally {
+        cleanup();
       }
+    }
+  }
+
+  private async writeStreamError(stream: Stream, message: string): Promise<void> {
+    try {
+      await stream.writeChunk(formatError(message));
+    } catch {
+      // editor may be unavailable; swallow
     }
   }
 

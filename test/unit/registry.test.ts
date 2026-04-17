@@ -50,9 +50,19 @@ function createMockApp(
   };
 }
 
+const mockStreamManager = {
+  addStream: vi.fn().mockReturnValue(true),
+  removeStream: vi.fn(),
+  handleEditorChange: vi.fn(),
+};
+
 describe("TemplateRegistry", () => {
-  const createPlugin = (overrides = {}) => ({
-    app: null as any,
+  const createPlugin = (app: ReturnType<typeof createMockApp>, overrides = {}) => ({
+    app: app as any,
+    addCommand: (cmd: { id: string; name: string }) => {
+      app._commands.set(cmd.id, cmd);
+      return cmd;
+    },
     settings: {
       templatesFolder: "Edu-Templates",
       defaultCalloutType: "ai",
@@ -68,11 +78,7 @@ describe("TemplateRegistry", () => {
       const app = createMockApp(new Map());
       app.vault.getFolderByPath = () => null;
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(0);
@@ -88,11 +94,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
 
@@ -116,11 +118,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(0);
@@ -136,11 +134,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(0);
@@ -158,11 +152,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
@@ -193,11 +183,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
 
@@ -232,11 +218,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
@@ -260,11 +242,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(
@@ -295,11 +273,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       files.set("Edu-Templates/Clarify.md", {
         path: "Edu-Templates/Clarify.md",
@@ -325,11 +299,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
@@ -353,11 +323,7 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(),
-        vi.fn(),
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
