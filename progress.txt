@@ -50,3 +50,27 @@ Files changed:
 - src/main.ts (import ScholiaSettingTab from settings.ts instead of defining locally)
 Verification: npm run build succeeded, no TS errors.
 
+--- Iteration 3 [2026-04-17 21:28:23] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 80
+Tasks completed: 6
+Input-tokens: 18086
+Output-tokens: 6348
+Cache-tokens: 525798
+
+## Iteration 4
+Task: M1.4 - Create src/styles.css with callout palette per §14
+Files changed:
+- src/styles.css (added all six callout types: scholia-clarify, scholia-example, scholia-flashcard, scholia-error, ai, faq - with both light and dark theme variants using subdued academic palette)
+Verification: npm run build succeeded, styles.css copied to repo root.
+
+--- Iteration 4 [2026-04-17 21:32:18] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 79
+Tasks completed: 7
+Input-tokens: 12000
+Output-tokens: 2500
+Cache-tokens: 300000
+

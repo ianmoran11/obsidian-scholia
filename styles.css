@@ -1,1 +1,75 @@
 /* Scholia - Active-reading AI annotations for Obsidian */
+
+/* Light theme callout colors */
+.theme-light .callout[data-callout="scholia-clarify"] {
+  --callout-color: 92, 116, 140;
+  --callout-icon: lucide-lightbulb;
+  --callout-bg: rgba(92, 116, 140, 0.1);
+}
+
+.theme-light .callout[data-callout="scholia-example"] {
+  --callout-color: 140, 116, 80;
+  --callout-icon: lucide-beaker;
+  --callout-bg: rgba(140, 116, 80, 0.1);
+}
+
+.theme-light .callout[data-callout="scholia-flashcard"] {
+  --callout-color: 96, 128, 104;
+  --callout-icon: lucide-layers;
+  --callout-bg: rgba(96, 128, 104, 0.1);
+}
+
+.theme-light .callout[data-callout="scholia-error"] {
+  --callout-color: 160, 72, 72;
+  --callout-icon: lucide-alert-triangle;
+  --callout-bg: rgba(160, 72, 72, 0.1);
+}
+
+.theme-light .callout[data-callout="ai"] {
+  --callout-color: 100, 100, 140;
+  --callout-icon: lucide-sparkles;
+  --callout-bg: rgba(100, 100, 140, 0.1);
+}
+
+.theme-light .callout[data-callout="faq"] {
+  --callout-color: 110, 90, 130;
+  --callout-icon: lucide-help-circle;
+  --callout-bg: rgba(110, 90, 130, 0.1);
+}
+
+/* Dark theme callout colors */
+.theme-dark .callout[data-callout="scholia-clarify"] {
+  --callout-color: 130, 155, 180;
+  --callout-icon: lucide-lightbulb;
+  --callout-bg: rgba(130, 155, 180, 0.15);
+}
+
+.theme-dark .callout[data-callout="scholia-example"] {
+  --callout-color: 180, 155, 115;
+  --callout-icon: lucide-beaker;
+  --callout-bg: rgba(180, 155, 115, 0.15);
+}
+
+.theme-dark .callout[data-callout="scholia-flashcard"] {
+  --callout-color: 130, 160, 130;
+  --callout-icon: lucide-layers;
+  --callout-bg: rgba(130, 160, 130, 0.15);
+}
+
+.theme-dark .callout[data-callout="scholia-error"] {
+  --callout-color: 200, 120, 120;
+  --callout-icon: lucide-alert-triangle;
+  --callout-bg: rgba(200, 120, 120, 0.15);
+}
+
+.theme-dark .callout[data-callout="ai"] {
+  --callout-color: 140, 140, 175;
+  --callout-icon: lucide-sparkles;
+  --callout-bg: rgba(140, 140, 175, 0.15);
+}
+
+.theme-dark .callout[data-callout="faq"] {
+  --callout-color: 145, 125, 165;
+  --callout-icon: lucide-help-circle;
+  --callout-bg: rgba(145, 125, 165, 0.15);
+}
