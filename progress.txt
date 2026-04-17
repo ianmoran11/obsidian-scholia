@@ -161,3 +161,30 @@ Exit code: 0
 Tasks remaining: 74
 Tasks completed: 10
 
+--- Iteration 8 [2026-04-17 21:36:35] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 74
+Tasks completed: 12
+Input-tokens: 22107
+Output-tokens: 4354
+Cache-tokens: 485071
+
+## Iteration 9
+Task: M2.10/11/12 - Template registry, removeCommand wrapper, and main.ts wiring
+Files created:
+- src/templates/registry.ts (TemplateRegistry class with load(), reconcile(), debounced vault watchers, handleCreate/Modify/Rename/Delete)
+- src/util/debounce.ts (debounce utility function)
+- src/util/removeCommand.ts (removeCommand wrapper with try/catch + Notice fallback)
+- src/util/ids.ts (buildCommandId for deterministic command IDs)
+Files changed:
+- src/main.ts (wired TemplateRegistry with vault event listeners for create/modify/rename/delete)
+Verification: npm run build succeeded, main.js and styles.css generated.
+Note: Tasks 11 (removeCommand) and 12 (wiring) completed as essential parts of registry implementation.
+
+--- Iteration 9 [2026-04-17 21:45:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 74
+Tasks completed: 13
+
