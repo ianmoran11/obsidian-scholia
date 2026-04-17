@@ -826,7 +826,7 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 2. Set `manifest.json`: `id: "scholia"`, `name: "Scholia"`, `version: "0.1.0"`, `minAppVersion: "1.5.0"`, `description: "Active-reading AI annotations for Obsidian."`, `isDesktopOnly: false`.
 - [x] 3. Create `src/settings.ts` with `ScholiaSettings`, `DEFAULT_SETTINGS`, `ScholiaSettingTab` wired per §9.
 - [x] 4. Create `src/styles.css` with callout palette per §14; copy to repo root in build step.
-- [ ] 5. Create `scripts/install-to-vault.sh` that symlinks `./` into `test-vault/.obsidian/plugins/scholia/`.
+- [x] 5. Create `scripts/install-to-vault.sh` that symlinks `./` into `test-vault/.obsidian/plugins/scholia/`.
 - [ ] 6. Create `test-vault/` with `.obsidian/community-plugins.json` enabling "scholia".
 - [ ] 7. Verify: Open Obsidian → test-vault loads → Scholia appears in Settings → all 11 controls render.
 - [ ] 8. Evidence: record 30s video scrolling through settings tab.

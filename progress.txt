@@ -74,3 +74,24 @@ Input-tokens: 12000
 Output-tokens: 2500
 Cache-tokens: 300000
 
+--- Iteration 4 [2026-04-17 21:29:36] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 79
+Tasks completed: 7
+Input-tokens: 17008
+Output-tokens: 2742
+Cache-tokens: 264535
+
+## Iteration 5
+Task: M1.5 - Create scripts/install-to-vault.sh
+Files created:
+- scripts/install-to-vault.sh (symlinks main.js, manifest.json, styles.css to test-vault/.obsidian/plugins/scholia/)
+Verification: npm run build succeeded, script is executable.
+
+--- Iteration 5 [2026-04-17 21:35:00] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 78
+Tasks completed: 8
+
