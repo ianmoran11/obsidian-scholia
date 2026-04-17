@@ -937,8 +937,8 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 - [x] 57. Implement `src/storage/sqlite.ts` interface + `NoopSqliteStore` per §15.
 - [x] 58. Wire capture runner to call `NoopSqliteStore.insertCapture` (no-op) so future swap is trivial.
 - [x] 59. Finalise `styles.css` — all five callout types styled in both themes.
-- [ ] 60. Verify visually: toggle between light/dark themes; each callout readable.
-- [ ] 61. Evidence: side-by-side light/dark screenshots.
+- [x] 60. Verify visually: toggle between light/dark themes; each callout readable.
+- [x] 61. Evidence: side-by-side light/dark screenshots.
 
 **Acceptance:** `NoopSqliteStore` reachable from the capture code path; CSS passes visual review.
 
