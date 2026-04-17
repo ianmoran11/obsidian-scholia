@@ -1,5 +1,5 @@
 ---
-context_scope: selection
+context_scope: full-note
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.4

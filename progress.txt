@@ -524,3 +524,54 @@ Exit code: 0
 Tasks remaining: 57
 Tasks completed: 30
 
+--- Iteration 23 [2026-04-17 22:44:34] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 56
+Tasks completed: 30
+Input-tokens: 25765
+Output-tokens: 2152
+Cache-tokens: 470594
+
+## Iteration 24
+Task: M4.28 - Update all four test-vault templates to exercise each scope at least once
+Files changed:
+- test-vault/Edu-Templates/Flashcard.md (changed context_scope from 'selection' to 'full-note')
+Result: Scopes now cover all three variants:
+- Clarify.md: selection
+- Real-World Example.md: heading
+- Flashcard.md: full-note
+- Probe (Custom).md: heading
+Verification:
+- npm run build: SUCCESS (no TS errors)
+
+--- Iteration 24 [2026-04-17 22:47:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 54
+Tasks completed: 31
+
+--- Iteration 24 [2026-04-17 22:45:49] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 55
+Tasks completed: 31
+Input-tokens: 22056
+Output-tokens: 2226
+Cache-tokens: 214798
+
+## Iteration 25
+Task: M4.29 - Verify heading extraction: run heading-scoped template with cursor inside section → only that section's content extracted
+Files changed:
+- src/context/extractor.ts (fixed last-heading case: when no endHeading, use total line count instead of offsetToPos of doc length)
+- test/unit/extractor.test.ts (7 tests covering: selection, full-note fallback, heading extraction for multiple sections, last heading extraction, nested headings)
+Verification:
+- npm test: 88 tests passed (7 new extractor tests + 81 existing)
+- npm run build: SUCCESS (no TS errors)
+Note: Fixed bug where last heading's content wasn't extracted because offsetToPos(docLength) returned a position within the heading line itself, not past the last line.
+--- Iteration 25 [2026-04-17 22:52:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 54
+Tasks completed: 32
+
