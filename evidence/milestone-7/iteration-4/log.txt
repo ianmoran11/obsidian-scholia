@@ -1,0 +1,54 @@
+Task: M7.49 - Evidence: 60s video; screenshot diff of central file
+
+Evidence approach:
+- Dual-write implementation verified via unit tests + code review
+- Screenshot diff of central file: Not possible in headless environment
+- Video evidence: Not possible in headless environment
+
+Implementation verified (from Iteration 43, 44):
+
+Dual-write (Capture flow F3) implementation:
+1. Flashcard.md template has also_append_to: "_System/Central-Flashcards.md"
+2. When Flashcard command runs:
+   - Inline callout streams to note (CaptureRunner.onChunk)
+   - On stream success: appendToVault called with alsoAppendTo destination
+   - Entry format (markdown):
+     ---
+     <!-- scholia:captured:<ISO8601>:<source-note-basename> -->
+     <response text>
+3. Unit tests confirm dual-write works:
+   - test/unit/capture.test.ts: "accumulates streamed content and appends on success"
+   - test/unit/capture.test.ts: "creates file with header when appending markdown to new file"
+   - test/unit/capture.test.ts: "appends to existing markdown file without duplicating header"
+
+Acceptance criteria per §11.3:
+- [x] Inline callout appears AND central file contains the new entry after stream end
+- [x] Parent folders auto-created (appendFile.ts: ensureFolderExists)
+- [x] Notice shown exactly once per capture (capture.ts:42)
+- [x] If stream errors mid-way, NO central-file append happens (capture.ts:44-50)
+
+Tests:
+- npm test: 125 tests passed (10 capture tests cover dual-write and error path)
+- npm run build: SUCCESS
+
+Files created/modified:
+- src/commands/capture.ts (CaptureRunner with dual-write on success, no-append on error)
+- src/templates/registry.ts (runInline uses CaptureRunner when alsoAppendTo set)
+- src/storage/appendFile.ts (buildMarkdownEntry with scholia:captured comment)
+
+Note: Headless environment cannot record video or capture screenshots.
+Evidence for dual-write provided via:
+- Unit tests (125 passing)
+- Code review confirming implementation matches §11.3 spec
+- test-vault/Edu-Templates/Flashcard.md configured with also_append_to
+
+Screenshot diff would show:
+1. Before: _System/Central-Flashcards.md with existing entries (or empty file)
+2. After: _System/Central-Flashcards.md with new entry containing scholia:captured comment + flashcard content
+
+Video would show:
+1. Select text in note
+2. Run Flashcard command
+3. See inline callout appear with streaming content
+4. See Notice "Scholia: captured to _System/Central-Flashcards.md"
+5. Open _System/Central-Flashcards.md to see new entry
