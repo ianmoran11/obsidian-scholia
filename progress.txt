@@ -756,3 +756,26 @@ Status: SUCCESS
 Exit code: 0
 Tasks remaining: 48
 Tasks completed: 39
+--- Iteration 32 [2026-04-17 23:07:36] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 47
+Tasks completed: 39
+Input-tokens: 25400
+Output-tokens: 2708
+Cache-tokens: 473329
+
+
+## Iteration 33
+Task: M6.37 - Implement src/ui/modal.ts (CustomProbeModal)
+Files created:
+- src/ui/modal.ts (CustomProbeModal class extending Modal with: textarea for user query (autofocus), radio group for context scope (selection/heading/full-note) defaulting to template's contextScope, checkbox for "Also append to central file", Submit on Ctrl/Cmd+Enter, Esc to cancel, empty input inline error)
+Verification:
+- npm test: 100 tests passed
+- npm run build: SUCCESS (no TS errors)
+
+--- Iteration 33 [2026-04-17 23:09:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 47
+Tasks completed: 40
