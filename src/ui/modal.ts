@@ -1,4 +1,4 @@
-import { App, Modal, Notice } from "obsidian";
+import { App, Modal } from "obsidian";
 import type { ContextScope, TemplateConfig } from "../templates/types";
 
 export interface CustomProbeResult {
@@ -111,7 +111,7 @@ export class CustomProbeModal extends Modal {
     };
 
     textarea.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         this.handleSubmit();
       } else if (e.key === "Escape") {

@@ -230,6 +230,22 @@ describe("CustomProbeModal", () => {
     modal.close();
   });
 
+  it("submits on Enter", async () => {
+    const resultPromise = modal.openAndWait();
+    const textarea = modal.contentEl.querySelector(
+      ".custom-probe-textarea",
+    ) as HTMLTextAreaElement;
+    textarea.value = "Explain this";
+    textarea.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+
+    await expect(resultPromise).resolves.toMatchObject({
+      query: "Explain this",
+      scope: "heading",
+    });
+  });
+
   it("textarea has placeholder text", () => {
     modal.open();
     const textarea = modal.contentEl.querySelector(

@@ -18,20 +18,28 @@ export class CaptureRunner {
     llmClient: OpenRouterClient,
     llmRequest: LlmRequest,
     config: TemplateConfig,
+    abortSignal: AbortSignal,
     onChunk: (chunk: string) => Promise<void>,
     sourcePath: string | undefined,
     templateName: string | undefined,
   ): Promise<void> {
     let accumulatedContent = "";
-    const abortController = new AbortController();
 
     try {
-      for await (const chunk of llmClient.stream(
-        llmRequest,
-        abortController.signal,
-      )) {
+      for await (const chunk of llmClient.stream(llmRequest, abortSignal)) {
+        if (abortSignal.aborted) {
+          throw abortSignal.reason instanceof Error
+            ? abortSignal.reason
+            : new Error("Stream aborted");
+        }
         accumulatedContent += chunk;
         await onChunk(chunk);
+      }
+
+      if (abortSignal.aborted) {
+        throw abortSignal.reason instanceof Error
+          ? abortSignal.reason
+          : new Error("Stream aborted");
       }
 
       if (config.alsoAppendTo) {
@@ -55,7 +63,7 @@ export class CaptureRunner {
         model: llmRequest.model,
       });
     } catch (err) {
-      if (!abortController.signal.aborted) {
+      if (!abortSignal.aborted) {
         new Notice(
           `Scholia: ${err instanceof Error ? err.message : "Stream failed"}`,
         );

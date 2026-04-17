@@ -1,4 +1,11 @@
-import { App, Command, MarkdownView, Notice, TFile, TFolder } from "obsidian";
+import {
+  App,
+  Command,
+  MarkdownView,
+  Notice,
+  TFile,
+  parseYaml,
+} from "obsidian";
 import { debounce } from "../util/debounce";
 import { removeCommand } from "../util/removeCommand";
 import { buildCommandId } from "../util/ids";
@@ -24,6 +31,8 @@ interface PluginRef {
     defaultModel: string;
     defaultTemperature: number;
     defaultMaxTokens: number;
+    centralCaptureFile: string;
+    enableHotReloadOfTemplates: boolean;
   };
 }
 
@@ -113,8 +122,12 @@ export class TemplateRegistry {
 
     let rawFrontmatter: Record<string, unknown> = {};
     try {
-      const yamlContent = parts[1];
-      rawFrontmatter = this.parseYaml(yamlContent);
+      const cachedFrontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+      if (cachedFrontmatter) {
+        rawFrontmatter = cachedFrontmatter;
+      } else {
+        rawFrontmatter = parseYaml(parts[1]);
+      }
     } catch {
       new Notice(
         `Scholia template invalid: ${file.path} — invalid YAML frontmatter`,
@@ -130,39 +143,6 @@ export class TemplateRegistry {
       file.path,
       this.plugin.settings.defaultCalloutType,
     );
-  }
-
-  private parseYaml(yaml: string): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    const lines = yaml.split("\n");
-
-    for (const line of lines) {
-      const match = line.match(/^(\w+):\s*(.*)$/);
-      if (match) {
-        const [, key, value] = match;
-        const trimmedValue = value.trim();
-
-        if (trimmedValue === "true") {
-          result[key] = true;
-        } else if (trimmedValue === "false") {
-          result[key] = false;
-        } else if (/^\d+$/.test(trimmedValue)) {
-          result[key] = parseInt(trimmedValue, 10);
-        } else if (/^\d+\.\d+$/.test(trimmedValue)) {
-          result[key] = parseFloat(trimmedValue);
-        } else if (trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) {
-          result[key] = trimmedValue.slice(1, -1);
-        } else if (trimmedValue.startsWith("'") && trimmedValue.endsWith("'")) {
-          result[key] = trimmedValue.slice(1, -1);
-        } else if (trimmedValue === "[]") {
-          result[key] = [];
-        } else {
-          result[key] = trimmedValue;
-        }
-      }
-    }
-
-    return result;
   }
 
   private getTemplateName(filePath: string): string {
@@ -233,23 +213,12 @@ export class TemplateRegistry {
     }
 
     const editor = view.editor;
-    const selection = editor.getSelection();
-
-    if (config.requiresSelection && !selection) {
-      new Notice("Scholia: Select text first.");
-      return;
-    }
-
-    if (config.contextScope === "selection" && !selection) {
-      new Notice("Scholia: Select text first.");
-      return;
-    }
-
     let effectiveScope = config.contextScope;
     let systemPrompt = config.systemPrompt;
+    const effectiveConfig: TemplateConfig = { ...config };
 
-    if (config.customProbe) {
-      const modal = new CustomProbeModal(this.app, config);
+    if (effectiveConfig.customProbe) {
+      const modal = new CustomProbeModal(this.app, effectiveConfig);
       const result = await modal.openAndWait();
 
       if (!result) {
@@ -257,19 +226,32 @@ export class TemplateRegistry {
       }
 
       effectiveScope = result.scope;
-      systemPrompt = `${config.systemPrompt}\n\nUser request: ${result.query}`;
+      systemPrompt = `${effectiveConfig.systemPrompt}\n\nUser request: ${result.query}`;
 
-      if (result.alsoAppendToCentral && !config.alsoAppendTo) {
-        config.alsoAppendTo = "_System/Central-Flashcards.md";
+      if (result.alsoAppendToCentral && !effectiveConfig.alsoAppendTo) {
+        effectiveConfig.alsoAppendTo = this.plugin.settings.centralCaptureFile;
       }
+    }
+
+    const selection = editor.getSelection();
+
+    if (effectiveConfig.requiresSelection && !selection) {
+      new Notice("Scholia: Select text first.");
+      return;
+    }
+
+    if (effectiveScope === "selection" && !selection) {
+      new Notice("Scholia: Select text first.");
+      return;
     }
 
     const contextText = extractContext(this.app, editor, view, effectiveScope);
 
-    const model = config.model ?? this.plugin.settings.defaultModel;
+    const model = effectiveConfig.model ?? this.plugin.settings.defaultModel;
     const temperature =
-      config.temperature ?? this.plugin.settings.defaultTemperature;
-    const maxTokens = config.maxTokens ?? this.plugin.settings.defaultMaxTokens;
+      effectiveConfig.temperature ?? this.plugin.settings.defaultTemperature;
+    const maxTokens =
+      effectiveConfig.maxTokens ?? this.plugin.settings.defaultMaxTokens;
 
     const llmClient = new OpenRouterClient(apiKey);
     const llmRequest: LlmRequest = {
@@ -280,10 +262,10 @@ export class TemplateRegistry {
       user: contextText,
     };
 
-    if (config.outputDestination === "inline") {
+    if (effectiveConfig.outputDestination === "inline") {
       await this.runInline(
         templateName,
-        config,
+        effectiveConfig,
         view,
         editor,
         selection,
@@ -291,7 +273,13 @@ export class TemplateRegistry {
         llmRequest,
       );
     } else {
-      await this.runAppend(templateName, config, view, llmClient, llmRequest);
+      await this.runAppend(
+        templateName,
+        effectiveConfig,
+        view,
+        llmClient,
+        llmRequest,
+      );
     }
   }
 
@@ -309,10 +297,19 @@ export class TemplateRegistry {
     const calloutLabel = config.calloutLabel ?? templateName;
     const calloutFolded = config.calloutFolded ?? true;
 
-    const posAfterSelection = editor.getCursor("to");
+    const selectionEnd = editor.getCursor("to");
+    const posAfterSelection = {
+      line: selectionEnd.line,
+      ch: editor.getLine(selectionEnd.line).length,
+    };
 
     const streamId = `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const stream = new Stream(streamId, view.file?.path ?? "", editor, view);
+
+    if (!this.streamManager.addStream(stream)) {
+      new Notice("Scholia: Too many concurrent streams. Please wait.");
+      return;
+    }
 
     stream.insertSkeleton(
       {
@@ -325,11 +322,6 @@ export class TemplateRegistry {
       posAfterSelection,
     );
 
-    if (!this.streamManager.addStream(stream)) {
-      new Notice("Scholia: Too many concurrent streams. Please wait.");
-      return;
-    }
-
     const cleanup = () => this.streamManager.removeStream(streamId);
 
     if (config.alsoAppendTo) {
@@ -339,6 +331,7 @@ export class TemplateRegistry {
           llmClient,
           llmRequest,
           config,
+          stream.abort.signal,
           async (chunk) => {
             await stream.writeChunk(chunk);
           },
@@ -413,13 +406,19 @@ export class TemplateRegistry {
   }
 
   handleCreate(file: TFile): void {
-    if (this.isInTemplatesFolder(file)) {
+    if (
+      this.plugin.settings.enableHotReloadOfTemplates &&
+      this.isInTemplatesFolder(file)
+    ) {
       this.reconcile();
     }
   }
 
   handleModify(file: TFile): void {
-    if (this.isInTemplatesFolder(file)) {
+    if (
+      this.plugin.settings.enableHotReloadOfTemplates &&
+      this.isInTemplatesFolder(file)
+    ) {
       this.reconcile();
     }
   }
@@ -430,7 +429,10 @@ export class TemplateRegistry {
     );
     const newInTemplates = this.isInTemplatesFolder(file);
 
-    if (oldInTemplates || newInTemplates) {
+    if (
+      this.plugin.settings.enableHotReloadOfTemplates &&
+      (oldInTemplates || newInTemplates)
+    ) {
       if (oldInTemplates && !newInTemplates) {
         const existing = this.templates.get(oldPath);
         if (existing) {
@@ -443,7 +445,10 @@ export class TemplateRegistry {
   }
 
   handleDelete(file: TFile): void {
-    if (this.isInTemplatesFolder(file)) {
+    if (
+      this.plugin.settings.enableHotReloadOfTemplates &&
+      this.isInTemplatesFolder(file)
+    ) {
       const existing = this.templates.get(file.path);
       if (existing) {
         removeCommand(this.app, existing.commandId);

@@ -79,6 +79,10 @@ function createMockLlmClient(chunks: string[], shouldThrow?: boolean) {
   } as unknown as OpenRouterClient;
 }
 
+function createAbortSignal(): AbortSignal {
+  return new AbortController().signal;
+}
+
 describe("commands.capture CaptureRunner", () => {
   let vault: MockVault;
   let mockApp: { vault: MockVault };
@@ -111,6 +115,7 @@ describe("commands.capture CaptureRunner", () => {
         llmClient,
         {} as LlmRequest,
         config,
+        createAbortSignal(),
         onChunk,
         "Reading/Note.md",
         "Test",
@@ -148,6 +153,7 @@ describe("commands.capture CaptureRunner", () => {
         llmClient,
         {} as LlmRequest,
         config,
+        createAbortSignal(),
         onChunk,
         "Reading/Chapter.md",
         "Flashcard",
@@ -189,6 +195,7 @@ describe("commands.capture CaptureRunner", () => {
         llmClient,
         {} as LlmRequest,
         config,
+        createAbortSignal(),
         onChunk,
         "Reading/Note.md",
         "Flashcard",
@@ -222,6 +229,7 @@ describe("commands.capture CaptureRunner", () => {
         llmClient,
         {} as LlmRequest,
         config,
+        createAbortSignal(),
         onChunk,
         "Reading/Note.md",
         "Flashcard",
@@ -264,6 +272,7 @@ describe("commands.capture CaptureRunner", () => {
         llmClient,
         {} as LlmRequest,
         config,
+        createAbortSignal(),
         onChunk,
         "Reading/Note.md",
         "Test",
@@ -300,6 +309,7 @@ describe("commands.capture CaptureRunner", () => {
         llmClient,
         {} as LlmRequest,
         config,
+        createAbortSignal(),
         onChunk,
         "Reading/Note.md",
         "Test",
@@ -336,6 +346,7 @@ describe("commands.capture CaptureRunner", () => {
           llmClient,
           {} as LlmRequest,
           config,
+          createAbortSignal(),
           onChunk,
           "Reading/Note.md",
           "Test",
@@ -368,6 +379,7 @@ describe("commands.capture CaptureRunner", () => {
           llmClient,
           {} as LlmRequest,
           config,
+          createAbortSignal(),
           onChunk,
           "Reading/Note.md",
           "Test",
@@ -409,6 +421,7 @@ describe("commands.capture CaptureRunner", () => {
           errorClient,
           {} as LlmRequest,
           config,
+          createAbortSignal(),
           onChunk,
           "Reading/Note.md",
           "Test",
@@ -442,6 +455,7 @@ describe("commands.capture CaptureRunner", () => {
         llmClient,
         {} as LlmRequest,
         config,
+        createAbortSignal(),
         onChunk,
         "Reading/Note.md",
         "Test",
@@ -449,6 +463,42 @@ describe("commands.capture CaptureRunner", () => {
 
       expect(onChunk).toHaveBeenCalled();
       expect(vault.files.size).toBe(0);
+    });
+
+    it("does not append after an abort raised during chunk handling", async () => {
+      const runner = new CaptureRunner(mockApp as never);
+      const abortController = new AbortController();
+      const llmClient = createMockLlmClient(["Partial ", "content"]);
+      const onChunk = vi.fn(async () => {
+        abortController.abort(new Error("User edited inside the callout"));
+      });
+
+      const config: TemplateConfig = {
+        name: "Test",
+        filePath: "Test.md",
+        contextScope: "selection",
+        outputDestination: "inline",
+        alsoAppendTo: "_System/Captures.md",
+        appendFormat: "markdown",
+        requiresSelection: true,
+        commandPrefix: "Run",
+        hotkey: [],
+      };
+
+      await expect(
+        runner.runWithCapture(
+          llmClient,
+          { model: "test-model" } as LlmRequest,
+          config,
+          abortController.signal,
+          onChunk,
+          "Reading/Note.md",
+          "Test",
+        ),
+      ).rejects.toThrow("User edited inside the callout");
+
+      expect(onChunk).toHaveBeenCalledTimes(1);
+      expect(vault.getFileByPath("_System/Captures.md")).toBeNull();
     });
   });
 });

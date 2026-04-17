@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TemplateRegistry } from "../../src/templates/registry";
+import { CustomProbeModal } from "../../src/ui/modal";
 
 interface MockFile {
   path: string;
@@ -10,6 +11,7 @@ interface MockFile {
 function createMockApp(
   files: Map<string, MockFile>,
   templatesFolder = "Edu-Templates",
+  frontmatterByPath = new Map<string, Record<string, unknown>>(),
 ) {
   const commands: Map<string, { id: string; name: string }> = new Map();
   let getFileByPathCallCount = 0;
@@ -34,6 +36,11 @@ function createMockApp(
       },
       read: async (file: MockFile) => file.content || "",
     },
+    metadataCache: {
+      getFileCache: (file: MockFile) => ({
+        frontmatter: frontmatterByPath.get(file.path) ?? null,
+      }),
+    },
     commands: {
       addCommand: (cmd: { id: string; name: string }) => {
         commands.set(cmd.id, cmd);
@@ -45,6 +52,7 @@ function createMockApp(
     },
     workspace: {
       on: vi.fn(),
+      getActiveViewOfType: vi.fn(),
     },
     _commands: commands,
   };
@@ -69,6 +77,8 @@ describe("TemplateRegistry", () => {
       defaultModel: "test-model",
       defaultTemperature: 0.7,
       defaultMaxTokens: 1024,
+      centralCaptureFile: "_System/Central-Flashcards.md",
+      enableHotReloadOfTemplates: true,
       ...overrides,
     },
   });
@@ -106,6 +116,37 @@ describe("TemplateRegistry", () => {
       );
       expect(cmd).toBeDefined();
       expect(cmd?.name).toBe("Run: Clarify");
+    });
+
+    it("prefers metadata cache frontmatter over YAML fallback", async () => {
+      const files = new Map<string, MockFile>();
+      files.set("Edu-Templates/Clarify.md", {
+        path: "Edu-Templates/Clarify.md",
+        stat: { mtime: 1000 },
+        content: `---\ncontext_scope: selection\noutput_destination: inline\nhotkey: []\n---\nYou are a tutor.`,
+      });
+      const frontmatterByPath = new Map<string, Record<string, unknown>>();
+      frontmatterByPath.set("Edu-Templates/Clarify.md", {
+        context_scope: "selection",
+        output_destination: "inline",
+        hotkey: [{ modifiers: ["Mod", "Shift"], key: "C" }],
+      });
+
+      const app = createMockApp(files, "Edu-Templates", frontmatterByPath);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+
+      await registry.load();
+
+      const registered = registry
+        .getRegisteredCommands()
+        .get("Edu-Templates/Clarify.md");
+      expect(registered?.config.hotkey).toEqual([
+        { modifiers: ["Mod", "Shift"], key: "C" },
+      ]);
     });
 
     it("skips invalid templates with missing frontmatter", async () => {
@@ -330,6 +371,120 @@ describe("TemplateRegistry", () => {
 
       registry.handleDelete(files.get("Edu-Templates/Clarify.md") as any);
       expect(registry.getRegisteredCommands().size).toBe(0);
+    });
+
+    it("skips hot reload handlers when the setting is disabled", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app, { enableHotReloadOfTemplates: false }),
+        mockStreamManager as any,
+      );
+
+      files.set("Edu-Templates/Clarify.md", {
+        path: "Edu-Templates/Clarify.md",
+        stat: { mtime: 1000 },
+        content: `---\ncontext_scope: selection\noutput_destination: inline\n---\nYou are a tutor.`,
+      });
+
+      registry.handleCreate(files.get("Edu-Templates/Clarify.md") as any);
+      await new Promise((r) => setTimeout(r, 400));
+
+      expect(registry.getRegisteredCommands().size).toBe(0);
+    });
+  });
+
+  describe("command execution regressions", () => {
+    it("allows custom probe to override selection scope without an initial selection", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const view = {
+        file: { path: "Reading/Note.md" },
+        editor: {
+          getSelection: () => "",
+          getValue: () => "# Heading\n\nBody",
+          getCursor: () => ({ line: 0, ch: 0 }),
+          getLine: () => "# Heading",
+          replaceRange: vi.fn(),
+          posToOffset: () => 0,
+          offsetToPos: () => ({ line: 0, ch: 0 }),
+        },
+      };
+      app.workspace.getActiveViewOfType = vi.fn(() => view);
+
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app, { openRouterApiKey: "test-key" }),
+        mockStreamManager as any,
+      );
+      const runAppend = vi
+        .spyOn(registry as any, "runAppend")
+        .mockResolvedValue(undefined);
+      vi.spyOn(CustomProbeModal.prototype, "openAndWait").mockResolvedValue({
+        query: "Explain this section",
+        scope: "full-note",
+        alsoAppendToCentral: false,
+      });
+
+      await (registry as any).runTemplateCommand(
+        "Edu-Templates/Probe.md",
+        {
+          contextScope: "selection",
+          outputDestination: "_System/Log.md",
+          customProbe: true,
+          requiresSelection: false,
+          systemPrompt: "prompt",
+        },
+        "Probe",
+      );
+
+      expect(runAppend).toHaveBeenCalledOnce();
+    });
+
+    it("does not insert a skeleton when the stream cap is exceeded", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        {
+          ...mockStreamManager,
+          addStream: vi.fn().mockReturnValue(false),
+        } as any,
+      );
+
+      const content = "Selected text";
+      const editor = {
+        value: content,
+        getCursor: () => ({ line: 0, ch: content.length }),
+        getLine: () => content,
+        replaceRange(this: { value: string }, text: string) {
+          this.value += text;
+        },
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        posToOffset: () => content.length,
+        offsetToPos: () => ({ line: 0, ch: content.length }),
+      };
+      const view = { file: { path: "Reading/Note.md" } };
+
+      await (registry as any).runInline(
+        "Clarify",
+        {
+          contextScope: "selection",
+          outputDestination: "inline",
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        "Selected text",
+        {} as any,
+        {} as any,
+      );
+
+      expect(editor.getValue()).toBe(content);
     });
   });
 });
