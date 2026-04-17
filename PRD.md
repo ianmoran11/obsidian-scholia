@@ -349,11 +349,11 @@ A: <single-sentence answer>
 
 **Acceptance criteria (F1):**
 
-- [ ] With a selection present, invoking the command produces a `[!<callout_type>]-` callout within 1.5s TTFT (network-dependent; assert skeleton insertion within 100ms, first chunk arrival before completion).
-- [ ] Callout is folded by default, with `**Context:**` showing the original selection and `**Response:**` showing streamed text.
-- [ ] The original selected text remains unmodified in the document.
-- [ ] No popups, no focus changes, no scrolling jumps.
-- [ ] Works in Obsidian Desktop with mobile emulation ON and from the Mobile Toolbar.
+- [x] With a selection present, invoking the command produces a `[!<callout_type>]-` callout within 1.5s TTFT (network-dependent; assert skeleton insertion within 100ms, first chunk arrival before completion).
+- [x] Callout is folded by default, with `**Context:**` showing the original selection and `**Response:**` showing streamed text.
+- [x] The original selected text remains unmodified in the document.
+- [x] No popups, no focus changes, no scrolling jumps.
+- [x] Works in Obsidian Desktop with mobile emulation ON and from the Mobile Toolbar.
 
 ### 11.2 F2 — Custom Probing (Modal)
 
@@ -370,10 +370,10 @@ A: <single-sentence answer>
 
 **Acceptance criteria (F2):**
 
-- [ ] Modal appears centered, autofocuses the textarea, closes on Esc.
-- [ ] Submitting with empty textarea is blocked with an inline error message (no Notice).
-- [ ] Selected scope overrides the template scope for this invocation only.
-- [ ] Streaming behaviour identical to F1 afterwards.
+- [x] Modal appears centered, autofocuses the textarea, closes on Esc.
+- [x] Submitting with empty textarea is blocked with an inline error message (no Notice).
+- [x] Selected scope overrides the template scope for this invocation only.
+- [x] Streaming behaviour identical to F1 afterwards.
 
 ### 11.3 F3 — Capture (dual-write)
 
@@ -401,10 +401,10 @@ A: <single-sentence answer>
 
 **Acceptance criteria (F3):**
 
-- [ ] Inline callout appears AND central file contains the new entry after stream end.
-- [ ] Parent folders auto-created.
-- [ ] Notice shown exactly once per capture.
-- [ ] If stream errors mid-way, **no** central-file append happens.
+- [x] Inline callout appears AND central file contains the new entry after stream end.
+- [x] Parent folders auto-created.
+- [x] Notice shown exactly once per capture.
+- [x] If stream errors mid-way, **no** central-file append happens.
 
 ## 12. Streaming Implementation
 
