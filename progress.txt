@@ -779,3 +779,51 @@ Status: SUCCESS
 Exit code: 0
 Tasks remaining: 47
 Tasks completed: 40
+--- Iteration 33 [2026-04-17 23:10:29] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 46
+Tasks completed: 40
+Input-tokens: 39678
+Output-tokens: 4519
+Cache-tokens: 724927
+
+
+## Iteration 34
+Task: M6.38 - Wire `custom_probe: true` templates to open modal instead of immediate run
+Files changed:
+- src/templates/registry.ts (added import of CustomProbeModal; modified runTemplateCommand to check config.customProbe and open modal if true, appending user's query to system prompt as "User request: {query}", using effectiveScope from modal result to override template's contextScope)
+Verification:
+- npm test: 100 tests passed
+- npm run build: SUCCESS (no TS errors)
+
+--- Iteration 34 [2026-04-17 23:12:19] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 45
+Tasks completed: 41
+
+--- Iteration 34 [2026-04-17 23:12:37] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 45
+Tasks completed: 41
+Input-tokens: 29959
+Output-tokens: 3148
+Cache-tokens: 424862
+
+
+## Iteration 35
+Task: M6.39 - Submitted query appended to system prompt as described in §11.2
+Files verified:
+- src/templates/registry.ts:272 (implementation confirmed: `systemPrompt = `${config.systemPrompt}\n\nUser request: ${result.query}`;`)
+Verification:
+- npm test: 100 tests passed
+- npm run build: SUCCESS (no TS errors)
+Note: Task 39 was implemented as part of Iteration 34 (task 38) but not marked. Confirmed correct implementation per §11.2 spec: "{template_body}\n\nUser request: {modal_input}".
+--- Iteration 35 [2026-04-17 23:xx:xx] ---
+Status: SUCCESS
+Exit code: 0
+Tasks remaining: 44
+Tasks completed: 42
+

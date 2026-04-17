@@ -9,6 +9,7 @@ import { OpenRouterClient } from "../llm/openrouter";
 import { LlmRequest } from "../llm/client";
 import { extractContext } from "../context/extractor";
 import { appendToVault } from "../storage/appendFile";
+import { CustomProbeModal } from "../ui/modal";
 
 interface RegisteredTemplate {
   file: TFile;
@@ -256,12 +257,26 @@ export class TemplateRegistry {
       return;
     }
 
-    const contextText = extractContext(
-      this.app,
-      editor,
-      view,
-      config.contextScope,
-    );
+    let effectiveScope = config.contextScope;
+    let systemPrompt = config.systemPrompt;
+
+    if (config.customProbe) {
+      const modal = new CustomProbeModal(this.app, config);
+      const result = await modal.openAndWait();
+
+      if (!result) {
+        return;
+      }
+
+      effectiveScope = result.scope;
+      systemPrompt = `${config.systemPrompt}\n\nUser request: ${result.query}`;
+
+      if (result.alsoAppendToCentral && !config.alsoAppendTo) {
+        config.alsoAppendTo = "_System/Central-Flashcards.md";
+      }
+    }
+
+    const contextText = extractContext(this.app, editor, view, effectiveScope);
 
     const model = config.model ?? this.plugin.settings.defaultModel;
     const temperature =
@@ -273,7 +288,7 @@ export class TemplateRegistry {
       model,
       temperature,
       maxTokens,
-      system: config.systemPrompt,
+      system: systemPrompt,
       user: contextText,
     };
 

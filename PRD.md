@@ -894,8 +894,8 @@ Each milestone's tasks must be completed in order. Check items off by changing `
 **Goal:** Modal-based custom query flow.
 
 - [x] 37. Implement `src/ui/modal.ts` (`CustomProbeModal`).
-- [ ] 38. Wire `custom_probe: true` templates to open modal instead of immediate run.
-- [ ] 39. Submitted query appended to system prompt as described in §11.2.
+- [x] 38. Wire `custom_probe: true` templates to open modal instead of immediate run.
+- [x] 39. Submitted query appended to system prompt as described in §11.2.
 - [ ] 40. Modal keyboard behaviours: autofocus, Enter submit, Esc cancel, empty-input inline error.
 - [ ] 41. Unit test: modal renders expected DOM (jsdom).
 - [ ] 42. Verify on mobile-emulated desktop; verify on Android foldable (manual checklist).
