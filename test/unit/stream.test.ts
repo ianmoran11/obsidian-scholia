@@ -51,6 +51,24 @@ describe("Stream", () => {
     expect(stream.isAborted).toBe(true);
     expect(stream.abort.signal.aborted).toBe(true);
   });
+
+  it("can update the callout type and preserve offsets", () => {
+    const editor = new Editor();
+    editor.setValue(
+      "\n> [!scholia-pending]- AI Clarification: Clarify\n> **Context:** *Hello*\n> \n> **Response:**\n> Answer",
+    );
+    const view = createMockView("test.md");
+    const stream = new Stream("s1", "test.md", editor, view);
+    stream.skeletonStart = 1;
+    stream.skeletonEnd = 95;
+    stream.writeOffset = editor.getValue().length;
+
+    stream.setCalloutType("scholia-clarify");
+
+    expect(editor.getValue()).toContain("[!scholia-clarify]-");
+    expect(stream.writeOffset).toBe(editor.getValue().length);
+    expect(stream.skeletonEnd).toBe(95 + ("[!scholia-clarify]".length - "[!scholia-pending]".length));
+  });
 });
 
 describe("StreamManager", () => {

@@ -17,7 +17,7 @@ import { OpenRouterClient } from "../llm/openrouter";
 import { LlmRequest } from "../llm/client";
 import { extractContext } from "../context/extractor";
 import { appendToVault } from "../storage/appendFile";
-import { formatError } from "../stream/callout";
+import { formatError, STREAMING_CALLOUT_TYPE } from "../stream/callout";
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
 
@@ -313,7 +313,7 @@ export class TemplateRegistry {
 
     stream.insertSkeleton(
       {
-        calloutType,
+        calloutType: STREAMING_CALLOUT_TYPE,
         calloutLabel,
         folded: calloutFolded,
         commandName: templateName,
@@ -343,6 +343,7 @@ export class TemplateRegistry {
         await this.writeStreamError(stream, msg);
         new Notice(`Scholia: ${msg}`);
       } finally {
+        stream.setCalloutType(calloutType);
         cleanup();
       }
     } else {
@@ -353,6 +354,7 @@ export class TemplateRegistry {
         await this.writeStreamError(stream, msg);
         new Notice(`Scholia: ${msg}`);
       } finally {
+        stream.setCalloutType(calloutType);
         cleanup();
       }
     }
