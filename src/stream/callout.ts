@@ -8,6 +8,8 @@ export interface BuildSkeletonOpts {
   selectionText: string;
 }
 
+export const STREAMING_CALLOUT_TYPE = "scholia-pending";
+
 export function buildSkeleton(opts: BuildSkeletonOpts): string {
   const foldMarker = opts.folded ? "-" : "+";
   const safeSel = opts.selectionText.replace(/\n/g, "\n> ");

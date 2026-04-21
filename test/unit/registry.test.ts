@@ -486,5 +486,70 @@ describe("TemplateRegistry", () => {
 
       expect(editor.getValue()).toBe(content);
     });
+
+    it("uses an hourglass callout while streaming and restores the final type", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+
+      const editor = {
+        value: "Selected text",
+        getCursor: () => ({ line: 0, ch: "Selected text".length }),
+        getLine: () => "Selected text",
+        replaceRange(this: { value: string }, text: string, start: { line: number; ch: number }, end?: { line: number; ch: number }) {
+          const startOffset = this.posToOffset(start);
+          const endOffset = end ? this.posToOffset(end) : startOffset;
+          this.value =
+            this.value.slice(0, startOffset) + text + this.value.slice(endOffset);
+        },
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        posToOffset(this: { value: string }, pos: { line: number; ch: number }) {
+          const lines = this.value.split("\n");
+          let offset = 0;
+          for (let i = 0; i < pos.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + pos.ch;
+        },
+        offsetToPos(this: { value: string }, offset: number) {
+          const lines = this.value.slice(0, offset).split("\n");
+          return { line: lines.length - 1, ch: lines[lines.length - 1].length };
+        },
+      };
+      const view = { file: { path: "Reading/Note.md" } };
+      const sequence: string[] = [];
+      const llmClient = {
+        stream: async function* () {
+          sequence.push(editor.getValue());
+          yield "Answer";
+        },
+      };
+
+      await (registry as any).runInline(
+        "Clarify",
+        {
+          contextScope: "selection",
+          outputDestination: "inline",
+          calloutType: "scholia-clarify",
+          calloutLabel: "AI Clarification",
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        "Selected text",
+        llmClient as any,
+        {} as any,
+      );
+
+      expect(sequence[0]).toContain("[!scholia-pending]-");
+      expect(editor.getValue()).toContain("[!scholia-clarify]-");
+      expect(editor.getValue()).toContain("Answer");
+    });
   });
 });

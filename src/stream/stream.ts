@@ -61,6 +61,37 @@ export class Stream {
     }
   }
 
+  setCalloutType(calloutType: string): void {
+    const content = this.editor.getValue();
+    const headerStart =
+      content[this.skeletonStart] === "\n"
+        ? this.skeletonStart + 1
+        : this.skeletonStart;
+    const headerEnd = content.indexOf("\n", headerStart);
+    if (headerEnd === -1) return;
+
+    const header = content.slice(headerStart, headerEnd);
+    const nextHeader = header.replace(/\[![^\]]+\]/, `[!${calloutType}]`);
+    if (nextHeader === header) return;
+
+    this.inRangeWriteInProgress = true;
+    try {
+      this.editor.replaceRange(
+        nextHeader,
+        this.editor.offsetToPos(headerStart),
+        this.editor.offsetToPos(headerEnd),
+      );
+
+      const delta = nextHeader.length - header.length;
+      this.skeletonEnd += delta;
+      this.writeOffset += delta;
+      this.lastKnownContent = this.editor.getValue();
+      this.lastKnownLength = this.lastKnownContent.length;
+    } finally {
+      this.inRangeWriteInProgress = false;
+    }
+  }
+
   async start(generator: AsyncGenerator<string>): Promise<void> {
     try {
       for await (const chunk of generator) {

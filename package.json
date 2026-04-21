@@ -1,6 +1,6 @@
 {
   "name": "obsidian-scholia",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Active-reading AI annotations for Obsidian.",
   "main": "main.js",
   "scripts": {

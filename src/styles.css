@@ -25,6 +25,12 @@
   --callout-bg: rgba(160, 72, 72, 0.1);
 }
 
+.theme-light .callout[data-callout="scholia-pending"] {
+  --callout-color: 128, 120, 96;
+  --callout-icon: lucide-hourglass;
+  --callout-bg: rgba(128, 120, 96, 0.1);
+}
+
 .theme-light .callout[data-callout="ai"] {
   --callout-color: 100, 100, 140;
   --callout-icon: lucide-sparkles;
@@ -60,6 +66,12 @@
   --callout-color: 200, 120, 120;
   --callout-icon: lucide-alert-triangle;
   --callout-bg: rgba(200, 120, 120, 0.15);
+}
+
+.theme-dark .callout[data-callout="scholia-pending"] {
+  --callout-color: 175, 165, 130;
+  --callout-icon: lucide-hourglass;
+  --callout-bg: rgba(175, 165, 130, 0.15);
 }
 
 .theme-dark .callout[data-callout="ai"] {
