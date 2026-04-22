@@ -103,4 +103,19 @@ describe("parseSseStream", () => {
     ]);
     expect(chunks).toEqual(["hi"]);
   });
+
+  it("handles CRLF-delimited SSE events", async () => {
+    const chunks = await collectChunks([
+      'data: {"choices":[{"delta":{"content":"hello"}}]}\r\n\r\n',
+      'data: {"choices":[{"delta":{"content":"world"}}]}\r\n\r\n',
+    ]);
+    expect(chunks).toEqual(["hello", "world"]);
+  });
+
+  it("flushes a final buffered event at EOF without a trailing blank line", async () => {
+    const chunks = await collectChunks([
+      'data: {"choices":[{"delta":{"content":"tail"}}]}',
+    ]);
+    expect(chunks).toEqual(["tail"]);
+  });
 });
