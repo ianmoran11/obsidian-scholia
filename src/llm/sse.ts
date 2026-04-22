@@ -1,3 +1,23 @@
+async function* processEvent(event: string): AsyncGenerator<string> {
+  for (const rawLine of event.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
+    if (!line.startsWith("data:")) continue;
+
+    const payload = line.slice(5).trimStart();
+    if (payload === "[DONE]") return;
+
+    try {
+      const json = JSON.parse(payload);
+      const delta = json?.choices?.[0]?.delta?.content;
+      if (typeof delta === "string" && delta.length > 0) {
+        yield delta;
+      }
+    } catch {
+      // Ignore malformed JSON payloads and continue.
+    }
+  }
+}
+
 export async function* parseSseStream(resp: Response): AsyncGenerator<string> {
   const reader = resp.body!.getReader();
   const decoder = new TextDecoder("utf-8");
@@ -5,37 +25,31 @@ export async function* parseSseStream(resp: Response): AsyncGenerator<string> {
 
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    while (buffer.includes("\n\n")) {
-      const eventEnd = buffer.indexOf("\n\n");
-      const event = buffer.slice(0, eventEnd);
-      buffer = buffer.slice(eventEnd + 2);
-
-      for (const line of event.split("\n")) {
-        if (!line.startsWith("data: ")) continue;
-        const payload = line.slice(6);
-        if (payload === "[DONE]") return;
-        try {
-          const json = JSON.parse(payload);
-          const delta = json?.choices?.[0]?.delta?.content;
-          if (typeof delta === "string" && delta.length > 0) yield delta;
-        } catch {
-          // ignore malformed
-        }
-      }
+    if (done) {
+      buffer += decoder.decode();
+      break;
     }
 
-    if (buffer && !buffer.includes("\n\n")) {
-      try {
-        const json = JSON.parse(buffer);
-        const delta = json?.choices?.[0]?.delta?.content;
-        if (typeof delta === "string" && delta.length > 0) yield delta;
-        buffer = "";
-      } catch {
-        // incomplete, wait for more
+    buffer += decoder.decode(value, { stream: true });
+
+    let eventEnd = buffer.search(/\r?\n\r?\n/);
+    while (eventEnd !== -1) {
+      const separatorMatch = buffer.slice(eventEnd).match(/^\r?\n\r?\n/);
+      const separatorLength = separatorMatch?.[0].length ?? 2;
+      const event = buffer.slice(0, eventEnd);
+      buffer = buffer.slice(eventEnd + separatorLength);
+
+      for await (const chunk of processEvent(event)) {
+        yield chunk;
       }
+
+      eventEnd = buffer.search(/\r?\n\r?\n/);
+    }
+  }
+
+  if (buffer.trim().length > 0) {
+    for await (const chunk of processEvent(buffer)) {
+      yield chunk;
     }
   }
 }

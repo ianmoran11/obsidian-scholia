@@ -93,19 +93,26 @@ export class Stream {
   }
 
   async start(generator: AsyncGenerator<string>): Promise<void> {
-    try {
-      for await (const chunk of generator) {
-        if (this.abort.signal.aborted) break;
-        await this.writeChunk(chunk);
+    for await (const chunk of generator) {
+      if (this.abort.signal.aborted) {
+        throw this.getAbortError();
       }
-    } catch (err) {
-      throw err;
+      await this.writeChunk(chunk);
+    }
+
+    if (this.abort.signal.aborted) {
+      throw this.getAbortError();
     }
   }
 
   abortWithError(message: string): void {
     this.abort.abort(new Error(message));
     this.isAborted = true;
+  }
+
+  private getAbortError(): Error {
+    const { reason } = this.abort.signal;
+    return reason instanceof Error ? reason : new Error("Stream aborted");
   }
 
   applyExternalEdit(

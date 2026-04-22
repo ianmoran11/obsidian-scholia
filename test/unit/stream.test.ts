@@ -69,6 +69,37 @@ describe("Stream", () => {
     expect(stream.writeOffset).toBe(editor.getValue().length);
     expect(stream.skeletonEnd).toBe(95 + ("[!scholia-clarify]".length - "[!scholia-pending]".length));
   });
+
+  it("rejects start when the stream is aborted mid-generation", async () => {
+    const editor = new Editor();
+    editor.setValue("test");
+    const view = createMockView("test.md");
+    const stream = new Stream("s1", "test.md", editor, view);
+
+    async function* generator() {
+      yield "hello";
+      stream.abortWithError("User edited inside the callout");
+      yield " world";
+    }
+
+    await expect(stream.start(generator())).rejects.toThrow(
+      "User edited inside the callout",
+    );
+  });
+
+  it("rejects start when abort happens after the generator finishes", async () => {
+    const editor = new Editor();
+    editor.setValue("test");
+    const view = createMockView("test.md");
+    const stream = new Stream("s1", "test.md", editor, view);
+
+    async function* generator() {
+      yield "hello";
+      stream.abortWithError("Late abort");
+    }
+
+    await expect(stream.start(generator())).rejects.toThrow("Late abort");
+  });
 });
 
 describe("StreamManager", () => {
