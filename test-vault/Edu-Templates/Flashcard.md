@@ -5,7 +5,6 @@ model: z-ai/glm-5.1
 temperature: 0.4
 max_tokens: 512
 callout_type: scholia-flashcard
-toolbar_icon: layers-3
 callout_label: "Flashcard"
 callout_folded: true
 requires_selection: true
