@@ -95,6 +95,27 @@ describe("frontmatter.parseFrontmatter", () => {
     expect(result.config.temperature).toBe(0.8);
   });
 
+  it("parses toolbar_icon when valid", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      toolbar_icon: "lightbulb",
+    };
+    const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
+    expect(result.config.toolbarIcon).toBe("lightbulb");
+  });
+
+  it("ignores invalid toolbar_icon values", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      toolbar_icon: "Lightbulb Outline",
+    };
+    const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
+    expect(result.config.toolbarIcon).toBeUndefined();
+    expect(result.warnings[0]).toContain("Ignored invalid toolbar_icon");
+  });
+
   it("accepts max_tokens as string", () => {
     const frontmatter: RawTemplateFrontmatter = {
       context_scope: "selection",

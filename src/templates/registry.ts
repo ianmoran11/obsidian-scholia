@@ -88,6 +88,7 @@ export class TemplateRegistry {
     const command: Command = {
       id: rawCommandId,
       name: `${config.commandPrefix}: ${templateName}`,
+      icon: config.toolbarIcon,
       callback: () => {
         this.runTemplateCommand(file.path, config, templateName);
       },

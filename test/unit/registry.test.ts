@@ -13,7 +13,7 @@ function createMockApp(
   templatesFolder = "Edu-Templates",
   frontmatterByPath = new Map<string, Record<string, unknown>>(),
 ) {
-  const commands: Map<string, { id: string; name: string }> = new Map();
+  const commands: Map<string, { id: string; name: string; icon?: string }> = new Map();
   let getFileByPathCallCount = 0;
 
   return {
@@ -42,7 +42,7 @@ function createMockApp(
       }),
     },
     commands: {
-      addCommand: (cmd: { id: string; name: string }) => {
+      addCommand: (cmd: { id: string; name: string; icon?: string }) => {
         commands.set(cmd.id, cmd);
       },
       removeCommand: (id: string) => {
@@ -67,7 +67,7 @@ const mockStreamManager = {
 describe("TemplateRegistry", () => {
   const createPlugin = (app: ReturnType<typeof createMockApp>, overrides = {}) => ({
     app: app as any,
-    addCommand: (cmd: { id: string; name: string }) => {
+    addCommand: (cmd: { id: string; name: string; icon?: string }) => {
       app._commands.set(cmd.id, cmd);
       return cmd;
     },
@@ -116,6 +116,31 @@ describe("TemplateRegistry", () => {
       );
       expect(cmd).toBeDefined();
       expect(cmd?.name).toBe("Run: Clarify");
+    });
+
+    it("registers toolbar icon from template frontmatter", async () => {
+      const files = new Map<string, MockFile>();
+      files.set("Edu-Templates/Clarify.md", {
+        path: "Edu-Templates/Clarify.md",
+        stat: { mtime: 1000 },
+        content: `---\ncontext_scope: selection\noutput_destination: inline\ntoolbar_icon: lightbulb\n---\nYou are a tutor.`,
+      });
+
+      const app = createMockApp(files);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+
+      await registry.load();
+
+      const cmd = app._commands.get("scholia.template.Edu-Templates-Clarify.md");
+      expect(cmd?.icon).toBe("lightbulb");
+      const registered = registry
+        .getRegisteredCommands()
+        .get("Edu-Templates/Clarify.md");
+      expect(registered?.config.toolbarIcon).toBe("lightbulb");
     });
 
     it("prefers metadata cache frontmatter over YAML fallback", async () => {
