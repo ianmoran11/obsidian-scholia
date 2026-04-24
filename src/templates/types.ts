@@ -10,6 +10,7 @@ export interface TemplateConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  toolbarIcon?: string;
   calloutType?: string;
   calloutLabel?: string;
   calloutFolded?: boolean;
@@ -28,6 +29,7 @@ export interface RawTemplateFrontmatter {
   model?: unknown;
   temperature?: unknown;
   max_tokens?: unknown;
+  toolbar_icon?: unknown;
   callout_type?: unknown;
   callout_label?: unknown;
   callout_folded?: unknown;

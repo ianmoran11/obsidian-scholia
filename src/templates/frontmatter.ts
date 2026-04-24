@@ -17,6 +17,7 @@ const VALID_CONTEXT_SCOPES: ContextScope[] = [
 const VALID_MODIFIERS = new Set(["Mod", "Ctrl", "Alt", "Shift", "Meta"]);
 
 const CALLOUT_TYPE_REGEX = /^[a-z][a-z0-9-]*$/;
+const TOOLBAR_ICON_REGEX = /^[a-z0-9-]+$/;
 
 export interface ParseResult {
   config: TemplateConfig;
@@ -81,6 +82,17 @@ export function parseFrontmatter(
 
   if (typeof raw.model === "string" && raw.model.length > 0) {
     config.model = raw.model;
+  }
+
+  if (typeof raw.toolbar_icon === "string") {
+    const toolbarIcon = raw.toolbar_icon.trim();
+    if (toolbarIcon.length > 0 && TOOLBAR_ICON_REGEX.test(toolbarIcon)) {
+      config.toolbarIcon = toolbarIcon;
+    } else if (toolbarIcon.length > 0) {
+      warnings.push(
+        `Ignored invalid toolbar_icon: ${toolbarIcon}. Use a lowercase Obsidian icon id like lightbulb or message-square.`,
+      );
+    }
   }
 
   if (
