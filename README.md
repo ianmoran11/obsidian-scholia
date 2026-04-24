@@ -48,7 +48,6 @@ temperature: 0.7
 max_tokens: 1024
 
 # Callout styling (optional)
-toolbar_icon: lightbulb # Obsidian toolbar icon id, e.g. lightbulb | message-square | layers-3
 callout_type: scholia-clarify # ai | faq | scholia-clarify | scholia-example | scholia-flashcard
 callout_label: "AI Clarification"
 callout_folded: true
@@ -73,7 +72,6 @@ Your system prompt goes here. The user's selected text (or heading/section) beco
 context_scope: selection
 output_destination: inline
 callout_type: scholia-clarify
-toolbar_icon: lightbulb
 callout_label: "AI Clarification"
 callout_folded: true
 requires_selection: true
@@ -88,7 +86,6 @@ You are a patient tutor. Explain the selection below in plain language suitable 
 context_scope: selection
 output_destination: inline
 callout_type: scholia-flashcard
-toolbar_icon: layers-3
 callout_label: "Flashcard"
 callout_folded: true
 also_append_to: "_System/Central-Flashcards.md"
@@ -107,11 +104,25 @@ A: <single-sentence answer>
 context_scope: heading
 output_destination: inline
 callout_type: scholia-example
-toolbar_icon: beaker
 callout_label: "Real-world example"
 callout_folded: true
 ---
 Using the section context below, provide one concrete real-world example that illustrates the concept. Keep it under 100 words.
+```
+
+**Scholia Note.md** — create a general-purpose study note from a selection:
+
+```yaml
+---
+context_scope: heading
+output_destination: inline
+custom_probe: true
+callout_type: ai
+callout_label: "Scholia Note"
+callout_folded: true
+requires_selection: false
+---
+You are a helpful study partner. Use the provided note context and the user's prompt to produce a concise scholia note that captures the key idea, important nuance, and why it matters. Keep it readable and well-structured without repeating the source text verbatim.
 ```
 
 ### Custom Probe Template
@@ -124,7 +135,6 @@ context_scope: heading
 output_destination: inline
 custom_probe: true
 callout_type: ai
-toolbar_icon: message-square
 callout_label: "Custom Probe"
 callout_folded: true
 ---
@@ -136,8 +146,6 @@ When triggered, a modal appears letting the user type a custom query. The query 
 ## Commands
 
 Once templates are in place, Scholia registers commands in the **Command Palette**. Look for commands prefixed with your `command_prefix` setting (default: "Run").
-
-If you add `toolbar_icon` to a template, that icon is used when the command is pinned to the mobile toolbar. The value should be a lowercase Obsidian icon id such as `lightbulb`, `message-square`, or `layers-3`.
 
 Commands are also accessible from:
 

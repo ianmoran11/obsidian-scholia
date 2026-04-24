@@ -295,6 +295,24 @@ hotkey: []
 Using the section context below, provide one concrete real-world example that illustrates the concept. Keep it under 100 words.`,
       },
       {
+        name: "Scholia Note",
+        content: `---
+context_scope: heading
+output_destination: inline
+model: z-ai/glm-5.1
+temperature: 0.5
+max_tokens: 640
+custom_probe: true
+callout_type: ai
+callout_label: "Scholia Note"
+callout_folded: true
+requires_selection: false
+command_prefix: "Run"
+hotkey: []
+---
+You are a helpful study partner. Use the provided note context and the user's prompt to produce a concise scholia note that captures the key idea, important nuance, and why it matters. Keep it readable and well-structured without repeating the source text verbatim.`,
+      },
+      {
         name: "Flashcard",
         content: `---
 context_scope: selection
