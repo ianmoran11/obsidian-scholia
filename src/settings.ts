@@ -8,12 +8,15 @@ import {
   TFolder,
 } from "obsidian";
 import type ScholiaPlugin from "./main";
+import type { ReasoningEffort } from "./templates/types";
 
 export interface ScholiaSettings {
   openRouterApiKey: string;
   defaultModel: string;
   defaultTemperature: number;
   defaultMaxTokens: number;
+  defaultReasoningEnabled: boolean;
+  defaultReasoningEffort: ReasoningEffort;
   templatesFolder: string;
   centralCaptureFile: string;
   defaultCalloutType: string;
@@ -25,7 +28,9 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   openRouterApiKey: "",
   defaultModel: "z-ai/glm-5.1",
   defaultTemperature: 0.7,
-  defaultMaxTokens: 1024,
+  defaultMaxTokens: 30000,
+  defaultReasoningEnabled: true,
+  defaultReasoningEffort: "medium",
   templatesFolder: "Edu-Templates",
   centralCaptureFile: "_System/Central-Flashcards.md",
   defaultCalloutType: "ai",
@@ -126,21 +131,51 @@ export class ScholiaSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Default Max Tokens")
-      .setDesc("Maximum tokens in response (128–8192)")
+      .setName("Default Token Budget")
+      .setDesc("Maximum output token budget per run")
       .addText((text) => {
         text.inputEl.type = "number";
         text
           .setValue(String(this.plugin.settings.defaultMaxTokens))
           .onChange(async (value) => {
             const num = Math.min(
-              8192,
-              Math.max(128, parseInt(value) || 1024),
+              65536,
+              Math.max(128, parseInt(value) || DEFAULT_SETTINGS.defaultMaxTokens),
             );
             this.plugin.settings.defaultMaxTokens = num;
             await this.plugin.saveSettings();
           });
       });
+
+    new Setting(containerEl)
+      .setName("Default Reasoning")
+      .setDesc("Enable reasoning by default for Scholia runs")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.defaultReasoningEnabled)
+          .onChange(async (value) => {
+            this.plugin.settings.defaultReasoningEnabled = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Default Reasoning Effort")
+      .setDesc("Reasoning strength when reasoning is enabled")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("minimal", "Minimal")
+          .addOption("low", "Low")
+          .addOption("medium", "Medium")
+          .addOption("high", "High")
+          .addOption("xhigh", "Extra high")
+          .setValue(this.plugin.settings.defaultReasoningEffort)
+          .onChange(async (value) => {
+            this.plugin.settings.defaultReasoningEffort =
+              value as ReasoningEffort;
+            await this.plugin.saveSettings();
+          }),
+      );
 
     new Setting(containerEl)
       .setName("Templates Folder")
@@ -267,7 +302,9 @@ context_scope: selection
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.6
-max_tokens: 768
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 callout_type: scholia-clarify
 callout_label: "AI Clarification"
 callout_folded: true
@@ -284,7 +321,9 @@ context_scope: heading
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.8
-max_tokens: 512
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 callout_type: scholia-example
 callout_label: "Real-world example"
 callout_folded: true
@@ -301,7 +340,9 @@ context_scope: heading
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.5
-max_tokens: 640
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 custom_probe: true
 callout_type: ai
 callout_label: "Scholia Note"
@@ -319,7 +360,9 @@ context_scope: selection
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.4
-max_tokens: 512
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 callout_type: scholia-flashcard
 callout_label: "Flashcard"
 callout_folded: true

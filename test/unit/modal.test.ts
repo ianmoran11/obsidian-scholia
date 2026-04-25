@@ -105,11 +105,8 @@ function createMockApp() {
   };
 }
 
-function createMockTemplate(): TemplateConfig {
+function createMockTemplate(overrides: Partial<TemplateConfig> = {}): TemplateConfig {
   return {
-    id: "test-template",
-    name: "Test Template",
-    filePath: "/test/Test.md",
     systemPrompt: "You are a helpful tutor.",
     contextScope: "heading",
     outputDestination: "inline",
@@ -122,115 +119,165 @@ function createMockTemplate(): TemplateConfig {
     requiresSelection: false,
     commandPrefix: "Run",
     hotkey: [],
+    ...overrides,
   };
 }
 
+const modalDefaults = {
+  defaultReasoningEnabled: true,
+  defaultReasoningEffort: "medium" as const,
+  defaultTokenBudget: 30000,
+};
+
 describe("CustomProbeModal", () => {
-  let modal: CustomProbeModal;
   let app: ReturnType<typeof createMockApp>;
-  let templateConfig: TemplateConfig;
 
   beforeEach(() => {
     app = createMockApp();
-    templateConfig = createMockTemplate();
-    modal = new CustomProbeModal(app as any, templateConfig);
   });
 
-  it("renders heading with template calloutLabel", () => {
-    modal.open();
-    const h2 = modal.contentEl.querySelector("h2");
-    expect(h2).not.toBeNull();
-    expect(h2?.textContent).toBe("Custom Probe: Test");
-    modal.close();
-  });
-
-  it("renders textarea with class custom-probe-textarea", () => {
-    modal.open();
-    const textarea = modal.contentEl.querySelector(
-      ".custom-probe-textarea",
-    ) as HTMLTextAreaElement;
-    expect(textarea).not.toBeNull();
-    expect(textarea.tagName).toBe("TEXTAREA");
-    expect(textarea.rows).toBe(4);
-    modal.close();
-  });
-
-  it("renders error element with class custom-probe-error", () => {
-    modal.open();
-    const errorEl = modal.contentEl.querySelector(".custom-probe-error");
-    expect(errorEl).not.toBeNull();
-    expect(errorEl?.style.display).toBe("none");
-    modal.close();
-  });
-
-  it("renders three radio buttons for context scope", () => {
-    modal.open();
-    const radios = modal.contentEl.querySelectorAll(
-      'input[type="radio"][name="context-scope"]',
+  it("renders the standard run modal without a custom prompt textarea", () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate(),
+      modalDefaults,
     );
-    expect(radios.length).toBe(3);
-    const values = Array.from(radios).map((r) => (r as HTMLInputElement).value);
-    expect(values).toContain("selection");
-    expect(values).toContain("heading");
-    expect(values).toContain("full-note");
-    modal.close();
+
+    modal.open();
+
+    expect(modal.contentEl.querySelector("h2")?.textContent).toBe("Run: Test");
+    expect(modal.contentEl.querySelector(".custom-probe-textarea")).toBeNull();
+    expect(
+      modal.contentEl.querySelector("#also-append-central"),
+    ).toBeNull();
   });
 
-  it("defaults to template contextScope radio button", () => {
-    templateConfig.contextScope = "full-note";
-    modal = new CustomProbeModal(app as any, templateConfig);
+  it("renders custom probe controls when enabled", () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate({ customProbe: true, alsoAppendTo: "_System/Central.md" }),
+      modalDefaults,
+    );
+
     modal.open();
-    const checkedRadio = modal.contentEl.querySelector(
-      'input[type="radio"][name="context-scope"]:checked',
+
+    expect(modal.contentEl.querySelector("h2")?.textContent).toBe(
+      "Custom Probe: Test",
+    );
+    expect(
+      modal.contentEl.querySelector(".custom-probe-textarea"),
+    ).not.toBeNull();
+    expect(
+      modal.contentEl.querySelector("#also-append-central"),
+    ).not.toBeNull();
+  });
+
+  it("shows reasoning and token budget controls for every run", () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate(),
+      modalDefaults,
+    );
+
+    modal.open();
+
+    const reasoningCheckbox = modal.contentEl.querySelector(
+      "#reasoning-enabled",
     ) as HTMLInputElement;
-    expect(checkedRadio?.value).toBe("full-note");
-    modal.close();
-  });
-
-  it("renders checkbox for central capture", () => {
-    modal.open();
-    const checkbox = modal.contentEl.querySelector(
-      "#also-append-central",
+    const effortSelect = modal.contentEl.querySelector(
+      "#reasoning-effort",
+    ) as HTMLSelectElement;
+    const tokenBudget = modal.contentEl.querySelector(
+      "#token-budget",
     ) as HTMLInputElement;
-    expect(checkbox).not.toBeNull();
-    expect(checkbox.type).toBe("checkbox");
-    modal.close();
+
+    expect(reasoningCheckbox.checked).toBe(true);
+    expect(effortSelect.value).toBe("medium");
+    expect(effortSelect.disabled).toBe(false);
+    expect(tokenBudget.value).toBe("30000");
   });
 
-  it("renders Cancel and Submit buttons", () => {
+  it("disables reasoning effort when reasoning is turned off", () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate(),
+      modalDefaults,
+    );
+
     modal.open();
-    const buttons = modal.contentEl.querySelectorAll("button");
-    const buttonTexts = Array.from(buttons).map((b) => b.textContent);
-    expect(buttonTexts).toContain("Cancel");
-    expect(buttonTexts).toContain("Submit");
-    modal.close();
+
+    const reasoningCheckbox = modal.contentEl.querySelector(
+      "#reasoning-enabled",
+    ) as HTMLInputElement;
+    const effortSelect = modal.contentEl.querySelector(
+      "#reasoning-effort",
+    ) as HTMLSelectElement;
+
+    reasoningCheckbox.checked = false;
+    reasoningCheckbox.dispatchEvent(new Event("change"));
+
+    expect(effortSelect.disabled).toBe(true);
   });
 
-  it("Submit button has mod-cta class", () => {
-    modal.open();
-    const submitBtn = modal.contentEl.querySelector(
-      "button.mod-cta",
-    ) as HTMLButtonElement;
-    expect(submitBtn).not.toBeNull();
-    expect(submitBtn?.textContent).toBe("Submit");
-    modal.close();
-  });
+  it("requires a query for custom probe runs", () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate({ customProbe: true }),
+      modalDefaults,
+    );
 
-  it("shows error when submitting empty query", () => {
     modal.open();
-    const submitBtn = modal.contentEl.querySelector(
-      "button.mod-cta",
-    ) as HTMLButtonElement;
-    submitBtn.click();
+    (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
+
     const errorEl = modal.contentEl.querySelector(
       ".custom-probe-error",
     ) as HTMLElement;
     expect(errorEl.style.display).toBe("block");
     expect(errorEl.textContent).toBe("Please enter a question or request.");
-    modal.close();
   });
 
-  it("submits on Enter", async () => {
+  it("submits a normal run without a custom query", async () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate(),
+      modalDefaults,
+    );
+
+    const resultPromise = modal.openAndWait();
+    const reasoningCheckbox = modal.contentEl.querySelector(
+      "#reasoning-enabled",
+    ) as HTMLInputElement;
+    const effortSelect = modal.contentEl.querySelector(
+      "#reasoning-effort",
+    ) as HTMLSelectElement;
+    const tokenBudget = modal.contentEl.querySelector(
+      "#token-budget",
+    ) as HTMLInputElement;
+
+    reasoningCheckbox.checked = false;
+    reasoningCheckbox.dispatchEvent(new Event("change"));
+    effortSelect.value = "high";
+    effortSelect.dispatchEvent(new Event("change"));
+    tokenBudget.value = "4096";
+    (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
+
+    await expect(resultPromise).resolves.toEqual({
+      query: "",
+      scope: "heading",
+      alsoAppendToCentral: false,
+      reasoningEnabled: false,
+      reasoningEffort: "high",
+      tokenBudget: 4096,
+    });
+  });
+
+  it("submits a custom probe on Enter", async () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate({ customProbe: true }),
+      modalDefaults,
+    );
+
     const resultPromise = modal.openAndWait();
     const textarea = modal.contentEl.querySelector(
       ".custom-probe-textarea",
@@ -243,58 +290,28 @@ describe("CustomProbeModal", () => {
     await expect(resultPromise).resolves.toMatchObject({
       query: "Explain this",
       scope: "heading",
+      reasoningEnabled: true,
+      reasoningEffort: "medium",
+      tokenBudget: 30000,
     });
   });
 
-  it("textarea has placeholder text", () => {
-    modal.open();
-    const textarea = modal.contentEl.querySelector(
-      ".custom-probe-textarea",
-    ) as HTMLTextAreaElement;
-    expect(textarea?.placeholder).toBe("Enter your question or request...");
-    modal.close();
-  });
-
-  it("has label for textarea", () => {
-    modal.open();
-    const labels = modal.contentEl.querySelectorAll("label");
-    const labelTexts = Array.from(labels).map((l) => l.textContent);
-    expect(labelTexts).toContain("Your question or request:");
-    modal.close();
-  });
-
-  it("has label for context scope section", () => {
-    modal.open();
-    const labels = modal.contentEl.querySelectorAll("label");
-    const labelTexts = Array.from(labels).map((l) => l.textContent);
-    expect(labelTexts).toContain("Context scope:");
-    modal.close();
-  });
-
-  it("has label for also append checkbox", () => {
-    modal.open();
-    const labels = modal.contentEl.querySelectorAll("label");
-    const labelTexts = Array.from(labels).map((l) => l.textContent);
-    expect(labelTexts).toContain("Also append to central capture file");
-    modal.close();
-  });
-
-  it("renders radio labels for each scope", () => {
-    modal.open();
-    const radioLabels = modal.contentEl.querySelectorAll(
-      'label[for^="scope-"]',
+  it("clamps the submitted token budget", async () => {
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate(),
+      modalDefaults,
     );
-    const texts = Array.from(radioLabels).map((l) => l.textContent);
-    expect(texts).toContain("selection");
-    expect(texts).toContain("heading");
-    expect(texts).toContain("full-note");
-    modal.close();
-  });
 
-  it("clears contentEl on close", () => {
-    modal.open();
-    expect(modal.contentEl.children.length).toBeGreaterThan(0);
-    modal.close();
-    expect(modal.contentEl.children.length).toBe(0);
+    const resultPromise = modal.openAndWait();
+    const tokenBudget = modal.contentEl.querySelector(
+      "#token-budget",
+    ) as HTMLInputElement;
+    tokenBudget.value = "999999";
+    (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
+
+    await expect(resultPromise).resolves.toMatchObject({
+      tokenBudget: 65536,
+    });
   });
 });

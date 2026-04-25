@@ -3,7 +3,9 @@ context_scope: heading
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.8
-max_tokens: 512
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 callout_type: scholia-example
 callout_label: "Real-world example"
 callout_folded: true

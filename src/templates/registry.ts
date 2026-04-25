@@ -20,19 +20,22 @@ import { appendToVault } from "../storage/appendFile";
 import { formatError, STREAMING_CALLOUT_TYPE } from "../stream/callout";
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
+import type { ReasoningEffort } from "./types";
 
 interface PluginRef {
   app: App;
   addCommand: (command: Command) => Command;
-  settings: {
-    openRouterApiKey: string;
-    templatesFolder: string;
-    defaultCalloutType: string;
-    defaultModel: string;
-    defaultTemperature: number;
-    defaultMaxTokens: number;
-    centralCaptureFile: string;
-    enableHotReloadOfTemplates: boolean;
+    settings: {
+      openRouterApiKey: string;
+      templatesFolder: string;
+      defaultCalloutType: string;
+      defaultModel: string;
+      defaultTemperature: number;
+      defaultMaxTokens: number;
+      defaultReasoningEnabled: boolean;
+      defaultReasoningEffort: ReasoningEffort;
+      centralCaptureFile: string;
+      enableHotReloadOfTemplates: boolean;
   };
 }
 
@@ -216,16 +219,28 @@ export class TemplateRegistry {
     let effectiveScope = config.contextScope;
     let systemPrompt = config.systemPrompt;
     const effectiveConfig: TemplateConfig = { ...config };
+    const modal = new CustomProbeModal(this.app, effectiveConfig, {
+      defaultReasoningEnabled:
+        effectiveConfig.reasoningEnabled ??
+        this.plugin.settings.defaultReasoningEnabled,
+      defaultReasoningEffort:
+        effectiveConfig.reasoningEffort ??
+        this.plugin.settings.defaultReasoningEffort,
+      defaultTokenBudget:
+        effectiveConfig.maxTokens ?? this.plugin.settings.defaultMaxTokens,
+    });
+    const result = await modal.openAndWait();
+
+    if (!result) {
+      return;
+    }
+
+    effectiveScope = result.scope;
+    effectiveConfig.reasoningEnabled = result.reasoningEnabled;
+    effectiveConfig.reasoningEffort = result.reasoningEffort;
+    effectiveConfig.maxTokens = result.tokenBudget;
 
     if (effectiveConfig.customProbe) {
-      const modal = new CustomProbeModal(this.app, effectiveConfig);
-      const result = await modal.openAndWait();
-
-      if (!result) {
-        return;
-      }
-
-      effectiveScope = result.scope;
       systemPrompt = `${effectiveConfig.systemPrompt}\n\nUser request: ${result.query}`;
 
       if (result.alsoAppendToCentral && !effectiveConfig.alsoAppendTo) {
@@ -252,12 +267,20 @@ export class TemplateRegistry {
       effectiveConfig.temperature ?? this.plugin.settings.defaultTemperature;
     const maxTokens =
       effectiveConfig.maxTokens ?? this.plugin.settings.defaultMaxTokens;
+    const reasoningEnabled =
+      effectiveConfig.reasoningEnabled ??
+      this.plugin.settings.defaultReasoningEnabled;
+    const reasoningEffort =
+      effectiveConfig.reasoningEffort ??
+      this.plugin.settings.defaultReasoningEffort;
 
     const llmClient = new OpenRouterClient(apiKey);
     const llmRequest: LlmRequest = {
       model,
       temperature,
       maxTokens,
+      reasoningEnabled,
+      reasoningEffort,
       system: systemPrompt,
       user: contextText,
     };

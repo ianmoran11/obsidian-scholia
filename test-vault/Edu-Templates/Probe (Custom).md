@@ -3,7 +3,9 @@ context_scope: heading
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.7
-max_tokens: 1024
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 callout_type: ai
 callout_label: "Custom Probe"
 callout_folded: true

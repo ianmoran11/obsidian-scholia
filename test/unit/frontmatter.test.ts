@@ -67,14 +67,14 @@ describe("frontmatter.parseFrontmatter", () => {
     expect(result2.config.temperature).toBe(0);
   });
 
-  it("clamps max_tokens to 128-8192 range", () => {
+  it("clamps token budget to 128-65536 range", () => {
     const highTokens: RawTemplateFrontmatter = {
       context_scope: "selection",
       output_destination: "inline",
-      max_tokens: 10000,
+      token_budget: 100000,
     };
     const result1 = parseFrontmatter(highTokens, "Prompt", "test.md", "ai");
-    expect(result1.config.maxTokens).toBe(8192);
+    expect(result1.config.maxTokens).toBe(65536);
 
     const lowTokens: RawTemplateFrontmatter = {
       context_scope: "selection",
@@ -103,6 +103,28 @@ describe("frontmatter.parseFrontmatter", () => {
     };
     const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
     expect(result.config.maxTokens).toBe(2048);
+  });
+
+  it("accepts token_budget as string", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      token_budget: "30000",
+    };
+    const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
+    expect(result.config.maxTokens).toBe(30000);
+  });
+
+  it("parses reasoning options", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      reasoning: true,
+      reasoning_effort: "high",
+    };
+    const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
+    expect(result.config.reasoningEnabled).toBe(true);
+    expect(result.config.reasoningEffort).toBe("high");
   });
 
   it("validates callout_type with valid pattern", () => {

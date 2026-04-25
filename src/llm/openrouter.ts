@@ -16,7 +16,11 @@ export class OpenRouterClient implements LlmClient {
       body: JSON.stringify({
         model: req.model,
         temperature: req.temperature,
-        max_tokens: req.maxTokens,
+        max_completion_tokens: req.maxTokens,
+        reasoning: {
+          effort: req.reasoningEnabled ? req.reasoningEffort : "none",
+          exclude: true,
+        },
         stream: true,
         messages: [
           { role: "system", content: req.system },

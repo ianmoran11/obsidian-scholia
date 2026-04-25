@@ -3,6 +3,13 @@ import type { Hotkey } from "obsidian";
 export type ContextScope = "selection" | "heading" | "full-note";
 export type OutputDestination = "inline" | string;
 export type AppendFormat = "markdown" | "json-line";
+export type ReasoningEffort =
+  | "none"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh";
 
 export interface TemplateConfig {
   contextScope: ContextScope;
@@ -10,6 +17,8 @@ export interface TemplateConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  reasoningEnabled?: boolean;
+  reasoningEffort?: ReasoningEffort;
   calloutType?: string;
   calloutLabel?: string;
   calloutFolded?: boolean;
@@ -28,6 +37,9 @@ export interface RawTemplateFrontmatter {
   model?: unknown;
   temperature?: unknown;
   max_tokens?: unknown;
+  token_budget?: unknown;
+  reasoning?: unknown;
+  reasoning_effort?: unknown;
   callout_type?: unknown;
   callout_label?: unknown;
   callout_folded?: unknown;

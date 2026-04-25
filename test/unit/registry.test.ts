@@ -77,6 +77,8 @@ describe("TemplateRegistry", () => {
       defaultModel: "test-model",
       defaultTemperature: 0.7,
       defaultMaxTokens: 1024,
+      defaultReasoningEnabled: true,
+      defaultReasoningEffort: "medium",
       centralCaptureFile: "_System/Central-Flashcards.md",
       enableHotReloadOfTemplates: true,
       ...overrides,
@@ -425,6 +427,9 @@ describe("TemplateRegistry", () => {
         query: "Explain this section",
         scope: "full-note",
         alsoAppendToCentral: false,
+        reasoningEnabled: true,
+        reasoningEffort: "medium",
+        tokenBudget: 1024,
       });
 
       await (registry as any).runTemplateCommand(

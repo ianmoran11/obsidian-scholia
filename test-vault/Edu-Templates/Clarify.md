@@ -3,7 +3,9 @@ context_scope: selection
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.6
-max_tokens: 768
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 callout_type: scholia-clarify
 callout_label: "AI Clarification"
 callout_folded: true

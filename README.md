@@ -20,17 +20,19 @@ npm run build
 
 Open **Settings → Scholia** to configure:
 
-| Setting              | Description                           | Default                         |
-| -------------------- | ------------------------------------- | ------------------------------- |
-| OpenRouter API Key   | Your OpenRouter API key               | (required)                      |
-| Default Model        | OpenRouter model slug                 | `z-ai/glm-5.1`                  |
-| Default Temperature  | LLM temperature (0.0–2.0)             | `0.7`                           |
-| Default Max Tokens   | Maximum response length               | `1024`                          |
-| Templates Folder     | Where your templates live             | `Edu-Templates`                 |
-| Central Capture File | Default capture destination           | `_System/Central-Flashcards.md` |
-| Default Callout Type | Visual style for responses            | `ai`                            |
-| Hot-reload templates | Update commands when templates change | `true`                          |
-| Debug logging        | Log to developer console              | `false`                         |
+| Setting                  | Description                           | Default                         |
+| ------------------------ | ------------------------------------- | ------------------------------- |
+| OpenRouter API Key       | Your OpenRouter API key               | (required)                      |
+| Default Model            | OpenRouter model slug                 | `z-ai/glm-5.1`                  |
+| Default Temperature      | LLM temperature (0.0–2.0)             | `0.7`                           |
+| Default Token Budget     | Maximum output token budget           | `30000`                         |
+| Default Reasoning        | Enable reasoning for runs by default  | `true`                          |
+| Default Reasoning Effort | Reasoning strength when enabled       | `medium`                        |
+| Templates Folder         | Where your templates live             | `Edu-Templates`                 |
+| Central Capture File     | Default capture destination           | `_System/Central-Flashcards.md` |
+| Default Callout Type     | Visual style for responses            | `ai`                            |
+| Hot-reload templates     | Update commands when templates change | `true`                          |
+| Debug logging            | Log to developer console              | `false`                         |
 
 ## Writing a Template
 
@@ -45,7 +47,9 @@ output_destination: inline # inline | <relative-path.md>
 # LLM options (optional — falls back to global settings)
 model: z-ai/glm-5.1
 temperature: 0.7
-max_tokens: 1024
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 
 # Callout styling (optional)
 callout_type: scholia-clarify # ai | faq | scholia-clarify | scholia-example | scholia-flashcard
@@ -193,7 +197,7 @@ The plugin uses OpenRouter for LLM access. Your API key is stored locally in Obs
 **Streaming is slow?**
 
 - Check your network connection
-- Try a lower `max_tokens` setting
+- Try a lower `token_budget` or reduce reasoning effort
 
 **API errors?**
 

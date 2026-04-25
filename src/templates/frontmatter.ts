@@ -4,6 +4,7 @@ import type {
   ContextScope,
   OutputDestination,
   AppendFormat,
+  ReasoningEffort,
   TemplateConfig,
   RawTemplateFrontmatter,
 } from "./types";
@@ -17,6 +18,14 @@ const VALID_CONTEXT_SCOPES: ContextScope[] = [
 const VALID_MODIFIERS = new Set(["Mod", "Ctrl", "Alt", "Shift", "Meta"]);
 
 const CALLOUT_TYPE_REGEX = /^[a-z][a-z0-9-]*$/;
+const VALID_REASONING_EFFORTS: ReasoningEffort[] = [
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+];
 
 export interface ParseResult {
   config: TemplateConfig;
@@ -96,17 +105,29 @@ export function parseFrontmatter(
     }
   }
 
+  const rawTokenBudget = raw.token_budget ?? raw.max_tokens;
   if (
-    typeof raw.max_tokens === "number" ||
-    typeof raw.max_tokens === "string"
+    typeof rawTokenBudget === "number" ||
+    typeof rawTokenBudget === "string"
   ) {
     const tokens =
-      typeof raw.max_tokens === "string"
-        ? parseInt(raw.max_tokens)
-        : raw.max_tokens;
+      typeof rawTokenBudget === "string"
+        ? parseInt(rawTokenBudget)
+        : rawTokenBudget;
     if (!isNaN(tokens)) {
-      config.maxTokens = Math.min(8192, Math.max(128, tokens));
+      config.maxTokens = Math.min(65536, Math.max(128, tokens));
     }
+  }
+
+  if (typeof raw.reasoning === "boolean") {
+    config.reasoningEnabled = raw.reasoning;
+  }
+
+  if (
+    typeof raw.reasoning_effort === "string" &&
+    VALID_REASONING_EFFORTS.includes(raw.reasoning_effort as ReasoningEffort)
+  ) {
+    config.reasoningEffort = raw.reasoning_effort as ReasoningEffort;
   }
 
   const calloutType = raw.callout_type;

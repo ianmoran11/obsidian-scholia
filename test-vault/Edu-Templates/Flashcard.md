@@ -3,7 +3,9 @@ context_scope: full-note
 output_destination: inline
 model: z-ai/glm-5.1
 temperature: 0.4
-max_tokens: 512
+token_budget: 30000
+reasoning: true
+reasoning_effort: medium
 callout_type: scholia-flashcard
 callout_label: "Flashcard"
 callout_folded: true
