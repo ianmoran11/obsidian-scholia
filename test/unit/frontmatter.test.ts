@@ -279,6 +279,16 @@ describe("frontmatter.parseFrontmatter", () => {
     expect(result.config.srTags).toEqual(["#exam", "ai-generated"]);
   });
 
+  it("parses generate_audio boolean", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "heading",
+      output_destination: "inline",
+      generate_audio: true,
+    };
+    const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
+    expect(result.config.generateAudio).toBe(true);
+  });
+
   it("defaults invalid spaced repetition format to basic", () => {
     const frontmatter: RawTemplateFrontmatter = {
       context_scope: "selection",

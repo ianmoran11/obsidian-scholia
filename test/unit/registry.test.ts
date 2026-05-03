@@ -686,6 +686,80 @@ describe("TemplateRegistry", () => {
       expect(editor.getValue()).toContain("Answer");
     });
 
+    it("triggers audio generation after an inline template with generate_audio", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const editor = {
+        value: "Selected text",
+        getCursor: () => ({ line: 0, ch: "Selected text".length }),
+        getLine: () => "Selected text",
+        replaceRange(
+          this: { value: string },
+          text: string,
+          start: { line: number; ch: number },
+          end?: { line: number; ch: number },
+        ) {
+          const startOffset = this.posToOffset(start);
+          const endOffset = end ? this.posToOffset(end) : startOffset;
+          this.value =
+            this.value.slice(0, startOffset) +
+            text +
+            this.value.slice(endOffset);
+        },
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        posToOffset(
+          this: { value: string },
+          pos: { line: number; ch: number },
+        ) {
+          const lines = this.value.split("\n");
+          let offset = 0;
+          for (let i = 0; i < pos.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + pos.ch;
+        },
+        offsetToPos(this: { value: string }, offset: number) {
+          const lines = this.value.slice(0, offset).split("\n");
+          return { line: lines.length - 1, ch: lines[lines.length - 1].length };
+        },
+      };
+      const view = { file: { path: "Reading/Note.md" } };
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+      const generateAudio = vi
+        .spyOn(registry as any, "generateAudioForInlineCallout")
+        .mockResolvedValue(undefined);
+      const llmClient = {
+        stream: async function* () {
+          yield { type: "content", text: "Detailed spoken answer." };
+        },
+      };
+
+      await (registry as any).runInline(
+        "Edu-Templates/Audio-Friendly Detail.md",
+        "Audio-Friendly Detail",
+        {
+          contextScope: "heading",
+          outputDestination: "inline",
+          generateAudio: true,
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        "Selected text",
+        llmClient as any,
+        {} as any,
+      );
+
+      expect(generateAudio).toHaveBeenCalledOnce();
+      expect(generateAudio.mock.calls[0][4]).toBe("Detailed spoken answer.");
+    });
+
     it("appends chat follow-ups inside an existing generated callout", async () => {
       const files = new Map<string, MockFile>();
       const app = createMockApp(files);

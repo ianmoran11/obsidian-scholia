@@ -99,3 +99,16 @@ Verification:
 - npm run build passed.
 - Computer Use was used to inspect the rendered evidence page showing readable Scholia output beside SR-compatible markdown.
 - Screenshot saved at evidence/screenshots/spaced-repetition-demo.png.
+
+Scholia audio-friendly detail template task completed on 2026-05-04.
+
+Implemented:
+- Added generate_audio template frontmatter support.
+- Inline templates with generate_audio: true now create TTS audio after the response finishes streaming and insert/update the callout Audio embed.
+- Added an Audio-Friendly Detail sample template that asks for detailed, natural, text-to-speech-friendly prose.
+- Added the same Audio-Friendly Detail template to the test vault templates folder.
+
+Verification:
+- npm test -- --run passed: 15 test files, 182 tests.
+- npx tsc --noEmit passed.
+- npm run build passed.

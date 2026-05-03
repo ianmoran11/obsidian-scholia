@@ -245,5 +245,9 @@ export function parseFrontmatter(
       .filter(Boolean);
   }
 
+  if (typeof raw.generate_audio === "boolean") {
+    config.generateAudio = raw.generate_audio;
+  }
+
   return { config: config as TemplateConfig, warnings, isValid: true };
 }

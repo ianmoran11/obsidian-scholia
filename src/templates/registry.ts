@@ -577,6 +577,7 @@ export class TemplateRegistry {
           config,
           stream.abort.signal,
           async (chunk) => {
+            accumulatedContent += chunk;
             await stream.writeChunk(chunk);
           },
           view.file?.path,
@@ -592,6 +593,15 @@ export class TemplateRegistry {
         new Notice(`Scholia: ${msg}`);
       } finally {
         stream.setCalloutType(calloutType);
+        if (!stream.isAborted && config.generateAudio) {
+          await this.generateAudioForInlineCallout(
+            view,
+            editor,
+            stream,
+            streamId,
+            accumulatedContent,
+          );
+        }
         cleanup();
       }
     } else {
@@ -627,6 +637,15 @@ export class TemplateRegistry {
         new Notice(`Scholia: ${msg}`);
       } finally {
         stream.setCalloutType(calloutType);
+        if (!stream.isAborted && config.generateAudio) {
+          await this.generateAudioForInlineCallout(
+            view,
+            editor,
+            stream,
+            streamId,
+            accumulatedContent,
+          );
+        }
         if (!stream.isAborted && config.spacedRepetition) {
           this.insertSrCardAfterInlineCallout(editor, stream.writeOffset, accumulatedContent, config);
         }
@@ -871,6 +890,56 @@ export class TemplateRegistry {
       await stream.writeChunk(formatError(message));
     } catch {
       // editor may be unavailable; swallow
+    }
+  }
+
+  private async generateAudioForInlineCallout(
+    view: MarkdownView,
+    editor: import("obsidian").Editor,
+    stream: Stream,
+    calloutId: string,
+    text: string,
+  ): Promise<void> {
+    const apiKey = this.plugin.settings.deepInfraApiKey;
+    if (!apiKey) {
+      new Notice("Scholia: DeepInfra API key not set. Audio was not generated.");
+      return;
+    }
+
+    try {
+      assertTtsTextWithinLimit(text);
+      const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
+        text,
+        model: this.plugin.settings.ttsModel,
+        voice: this.plugin.settings.ttsVoice,
+      });
+      const saved = await saveAudioToVault(this.app.vault, {
+        audio: generated.audio,
+        sourceFile: view.file,
+        calloutId,
+        audioOutputFolder: this.plugin.settings.audioOutputFolder,
+        extension: generated.extension,
+      });
+      const parsed = findScholiaCalloutAt(
+        editor,
+        editor.offsetToPos(stream.skeletonStart + 1),
+      );
+      if (!parsed) {
+        new Notice("Scholia: audio saved, but the callout could not be updated.");
+        return;
+      }
+
+      stream.inRangeWriteInProgress = true;
+      try {
+        this.insertOrUpdateCalloutAudio(editor, parsed, saved.path);
+      } finally {
+        stream.inRangeWriteInProgress = false;
+      }
+      new Notice(`Scholia: audio saved to ${saved.path}`);
+    } catch (err) {
+      new Notice(
+        `Scholia audio: ${err instanceof Error ? err.message : "Audio generation failed"}`,
+      );
     }
   }
 
