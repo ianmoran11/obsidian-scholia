@@ -22,6 +22,7 @@ export interface ScholiaSettings {
   defaultCalloutType: string;
   debugLogging: boolean;
   enableHotReloadOfTemplates: boolean;
+  showRunMetadata: boolean;
 }
 
 export const DEFAULT_SETTINGS: ScholiaSettings = {
@@ -36,6 +37,7 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   defaultCalloutType: "ai",
   debugLogging: false,
   enableHotReloadOfTemplates: true,
+  showRunMetadata: true,
 };
 
 class FolderSuggest extends AbstractInputSuggest<TFolder> {
@@ -231,6 +233,18 @@ export class ScholiaSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.enableHotReloadOfTemplates)
           .onChange(async (value) => {
             this.plugin.settings.enableHotReloadOfTemplates = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Show run metadata")
+      .setDesc("Show model, tokens, cost, and duration in generated callouts")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.showRunMetadata)
+          .onChange(async (value) => {
+            this.plugin.settings.showRunMetadata = value;
             await this.plugin.saveSettings();
           }),
       );

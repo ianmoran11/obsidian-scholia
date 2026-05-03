@@ -81,6 +81,7 @@ describe("TemplateRegistry", () => {
       defaultReasoningEffort: "medium",
       centralCaptureFile: "_System/Central-Flashcards.md",
       enableHotReloadOfTemplates: true,
+      showRunMetadata: true,
       ...overrides,
     },
   });
@@ -532,7 +533,7 @@ describe("TemplateRegistry", () => {
       const llmClient = {
         stream: async function* () {
           sequence.push(editor.getValue());
-          yield "Answer";
+          yield { type: "content", text: "Answer" };
         },
       };
 

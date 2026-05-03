@@ -3,6 +3,7 @@ import {
   buildSkeleton,
   appendToCallout,
   formatError,
+  formatCalloutMetadata,
 } from "../../src/stream/callout.ts";
 import { Editor } from "../mocks/obsidian";
 
@@ -125,5 +126,36 @@ describe("formatError", () => {
   it("preserves full error message", () => {
     const error = formatError("Network timeout after 30000ms");
     expect(error).toBe("> \n> **Error:** Network timeout after 30000ms");
+  });
+});
+
+describe("formatCalloutMetadata", () => {
+  it("formats token, cost, and duration metadata inside a callout", () => {
+    const line = formatCalloutMetadata({
+      id: "scholia-test",
+      timestamp: "2026-05-03T00:00:00.000Z",
+      provider: "openrouter",
+      model: "z-ai/glm-5.1",
+      temperature: 0.7,
+      maxTokens: 30000,
+      reasoningEnabled: true,
+      reasoningEffort: "medium",
+      contextScope: "heading",
+      templateName: "Scholia Note",
+      promptTokens: 100,
+      completionTokens: 50,
+      totalTokens: 150,
+      cost: { amount: 0.0012, currency: "USD", estimated: false },
+      durationMs: 4200,
+    });
+
+    expect(line).toContain("**Metadata:**");
+    expect(line).not.toContain("> **Metadata:**");
+    expect(line).toContain("model=z-ai/glm-5.1");
+    expect(line).toContain("prompt_tokens=100");
+    expect(line).toContain("completion_tokens=50");
+    expect(line).toContain("tokens=150");
+    expect(line).toContain("cost=$0.001200");
+    expect(line).toContain("duration=4.2s");
   });
 });

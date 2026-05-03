@@ -1,10 +1,10 @@
-import { LlmClient, LlmRequest } from "./client";
+import { LlmClient, LlmRequest, LlmStreamEvent } from "./client";
 import { parseSseStream } from "./sse";
 
 export class OpenRouterClient implements LlmClient {
   constructor(private apiKey: string) {}
 
-  async *stream(req: LlmRequest, signal: AbortSignal): AsyncGenerator<string> {
+  async *stream(req: LlmRequest, signal: AbortSignal): AsyncGenerator<LlmStreamEvent> {
     const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -22,6 +22,9 @@ export class OpenRouterClient implements LlmClient {
           exclude: true,
         },
         stream: true,
+        usage: {
+          include: true,
+        },
         messages: [
           { role: "system", content: req.system },
           { role: "user", content: req.user },

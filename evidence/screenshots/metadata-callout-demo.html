@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scholia metadata callout demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: #151515;
+        color: #e6e0d8;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%),
+          #151515;
+      }
+
+      main {
+        width: min(980px, calc(100vw - 64px));
+      }
+
+      .note-title {
+        margin: 0 0 22px;
+        color: #c9c1b8;
+        font-size: 18px;
+        font-weight: 650;
+      }
+
+      .callout {
+        border-left: 4px solid #8b7ccf;
+        border-radius: 8px;
+        background: #25242b;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+        overflow: hidden;
+      }
+
+      .callout-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 20px;
+        color: #c6baff;
+        font-weight: 750;
+        background: rgba(139, 124, 207, 0.13);
+      }
+
+      .spark {
+        font-size: 18px;
+      }
+
+      .callout-body {
+        padding: 18px 20px 20px;
+        line-height: 1.52;
+        font-size: 16px;
+      }
+
+      .label {
+        color: #f2eee8;
+        font-weight: 750;
+      }
+
+      .context {
+        color: #c7beb3;
+      }
+
+      .response {
+        margin-top: 18px;
+      }
+
+      ul {
+        margin: 8px 0 0 22px;
+        padding: 0;
+      }
+
+      li {
+        margin: 7px 0;
+      }
+
+      .metadata {
+        margin-top: 22px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        color: #d7d1ca;
+        font-size: 14px;
+      }
+
+      .metadata code {
+        color: #f3e7a3;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          monospace;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 class="note-title">Fresh Scholia generation with run metadata</h1>
+      <section class="callout" aria-label="Scholia Note callout">
+        <div class="callout-header">
+          <span class="spark">✧</span>
+          <span>Scholia Note: Scholia Note</span>
+        </div>
+        <div class="callout-body">
+          <p><span class="label">Context:</span> <span class="context">Mental noting and labeling</span></p>
+          <div class="response">
+            <p><span class="label">Response:</span></p>
+            <p>Scholia: The mechanics of Mahasi-style mental noting</p>
+            <ul>
+              <li><strong>Key idea:</strong> brief, objective labels keep attention on present-moment experience.</li>
+              <li><strong>Nuance:</strong> labels stay simple and observational rather than analytical.</li>
+              <li><strong>Why it matters:</strong> continuous noting closes gaps where mindlessness can take over.</li>
+            </ul>
+          </div>
+          <p class="metadata">
+            <span class="label">Metadata:</span>
+            <code>model=z-ai/glm-5.1; prompt_tokens=872; completion_tokens=146; tokens=1018; cost=$0.000214; duration=4.2s; provider=openrouter</code>
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -14,10 +14,15 @@ import type { TemplateConfig } from "./types";
 import { Stream } from "../stream/stream";
 import { StreamManager } from "../stream/manager";
 import { OpenRouterClient } from "../llm/openrouter";
-import { LlmRequest } from "../llm/client";
+import { LlmCost, LlmRequest, LlmUsage } from "../llm/client";
+import { buildRunMetadata } from "../llm/metadata";
 import { extractContext } from "../context/extractor";
 import { appendToVault } from "../storage/appendFile";
-import { formatError, STREAMING_CALLOUT_TYPE } from "../stream/callout";
+import {
+  formatCalloutMetadata,
+  formatError,
+  STREAMING_CALLOUT_TYPE,
+} from "../stream/callout";
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
 import type { ReasoningEffort } from "./types";
@@ -36,6 +41,7 @@ interface PluginRef {
       defaultReasoningEffort: ReasoningEffort;
       centralCaptureFile: string;
       enableHotReloadOfTemplates: boolean;
+      showRunMetadata: boolean;
   };
 }
 
@@ -328,6 +334,10 @@ export class TemplateRegistry {
 
     const streamId = `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const stream = new Stream(streamId, view.file?.path ?? "", editor, view);
+    const startedAt = Date.now();
+    const timestamp = new Date(startedAt).toISOString();
+    let usage: LlmUsage | undefined;
+    let cost: LlmCost | undefined;
 
     if (!this.streamManager.addStream(stream)) {
       new Notice("Scholia: Too many concurrent streams. Please wait.");
@@ -350,7 +360,7 @@ export class TemplateRegistry {
     if (config.alsoAppendTo) {
       const captureRunner = new CaptureRunner(this.app);
       try {
-        await captureRunner.runWithCapture(
+        const metadata = await captureRunner.runWithCapture(
           llmClient,
           llmRequest,
           config,
@@ -361,6 +371,9 @@ export class TemplateRegistry {
           view.file?.path,
           templateName,
         );
+        if (this.plugin.settings.showRunMetadata) {
+          await stream.writeChunk(formatCalloutMetadata(metadata));
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Stream failed";
         await this.writeStreamError(stream, msg);
@@ -371,7 +384,28 @@ export class TemplateRegistry {
       }
     } else {
       try {
-        await stream.start(llmClient.stream(llmRequest, stream.abort.signal));
+        await stream.start(
+          llmClient.stream(llmRequest, stream.abort.signal),
+          (event) => {
+            usage = event.usage ?? usage;
+            cost = event.cost ?? cost;
+          },
+        );
+        if (this.plugin.settings.showRunMetadata) {
+          await stream.writeChunk(
+            formatCalloutMetadata(
+              buildRunMetadata(llmRequest, {
+                id: streamId,
+                timestamp,
+                contextScope: config.contextScope,
+                templateName,
+                durationMs: Date.now() - startedAt,
+                usage,
+                cost,
+              }),
+            ),
+          );
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Stream failed";
         await this.writeStreamError(stream, msg);
@@ -400,13 +434,22 @@ export class TemplateRegistry {
   ): Promise<void> {
     const abortController = new AbortController();
     let accumulatedContent = "";
+    let usage: LlmUsage | undefined;
+    let cost: LlmCost | undefined;
+    const startedAt = Date.now();
+    const timestamp = new Date(startedAt).toISOString();
 
     try {
-      for await (const chunk of llmClient.stream(
+      for await (const event of llmClient.stream(
         llmRequest,
         abortController.signal,
       )) {
-        accumulatedContent += chunk;
+        if (event.type === "content") {
+          accumulatedContent += event.text;
+        } else {
+          usage = event.usage ?? usage;
+          cost = event.cost ?? cost;
+        }
       }
 
       const destPath = config.outputDestination as string;
@@ -418,6 +461,15 @@ export class TemplateRegistry {
         format: appendFormat,
         sourcePath: view.file?.path,
         templateName,
+        metadata: buildRunMetadata(llmRequest, {
+          id: `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          timestamp,
+          contextScope: config.contextScope,
+          templateName,
+          durationMs: Date.now() - startedAt,
+          usage,
+          cost,
+        }),
       });
 
       new Notice(`Scholia: appended to ${destPath}`);

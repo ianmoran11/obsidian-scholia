@@ -28,7 +28,7 @@ describe("OpenRouterClient", () => {
 
     const client = new OpenRouterClient("test-key");
     const chunks: string[] = [];
-    for await (const chunk of client.stream(
+    for await (const event of client.stream(
       {
         model: "z-ai/glm-5.1",
         temperature: 0.7,
@@ -40,7 +40,7 @@ describe("OpenRouterClient", () => {
       },
       new AbortController().signal,
     )) {
-      chunks.push(chunk);
+      if (event.type === "content") chunks.push(event.text);
     }
 
     expect(chunks).toEqual(["hello"]);
@@ -52,5 +52,6 @@ describe("OpenRouterClient", () => {
     expect(body.max_completion_tokens).toBe(512);
     expect(body.max_tokens).toBeUndefined();
     expect(body.reasoning).toEqual({ effort: "none", exclude: true });
+    expect(body.usage).toEqual({ include: true });
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CaptureRunner } from "../../src/commands/capture";
 import type { OpenRouterClient } from "../../src/llm/openrouter";
-import type { LlmRequest } from "../../src/llm/client";
+import type { LlmRequest, LlmStreamEvent } from "../../src/llm/client";
 import type { TemplateConfig } from "../../src/templates/types";
 
 interface MockFile {
@@ -68,12 +68,12 @@ function createMockLlmClient(chunks: string[], shouldThrow?: boolean) {
     stream: async function* (
       _req: LlmRequest,
       _signal: AbortSignal,
-    ): AsyncGenerator<string> {
+    ): AsyncGenerator<LlmStreamEvent> {
       if (shouldThrow) {
         throw new Error("Stream error");
       }
       for (const chunk of chunks) {
-        yield chunk;
+        yield { type: "content", text: chunk };
       }
     },
   } as unknown as OpenRouterClient;
@@ -242,6 +242,56 @@ describe("commands.capture CaptureRunner", () => {
       expect(parsed.source).toBe("Reading/Note.md");
       expect(parsed.template).toBe("Flashcard");
       expect(parsed.content).toBe("Flashcard Q and A");
+      expect(parsed.metadata.model).toBeUndefined();
+    });
+
+    it("records metadata in json-line captures when the stream reports usage", async () => {
+      const runner = new CaptureRunner(mockApp as never);
+      const llmClient = {
+        stream: async function* (): AsyncGenerator<LlmStreamEvent> {
+          yield { type: "content", text: "Answer" };
+          yield {
+            type: "metadata",
+            usage: { promptTokens: 8, completionTokens: 4, totalTokens: 12 },
+            cost: { amount: 0.0001, currency: "USD", estimated: false },
+          };
+        },
+      } as unknown as OpenRouterClient;
+
+      const config: TemplateConfig = {
+        name: "Test",
+        filePath: "Test.md",
+        contextScope: "heading",
+        outputDestination: "inline",
+        alsoAppendTo: "_System/Captures.jsonl",
+        appendFormat: "json-line",
+        requiresSelection: false,
+        commandPrefix: "Run",
+        hotkey: [],
+      };
+
+      await runner.runWithCapture(
+        llmClient,
+        {
+          model: "z-ai/glm-5.1",
+          temperature: 0.7,
+          maxTokens: 30000,
+          reasoningEnabled: true,
+          reasoningEffort: "medium",
+          system: "system",
+          user: "user",
+        },
+        config,
+        createAbortSignal(),
+        vi.fn(),
+        "Reading/Note.md",
+        "Test",
+      );
+
+      const parsed = JSON.parse(vault.getFileByPath("_System/Captures.jsonl")!.content.trim());
+      expect(parsed.metadata.totalTokens).toBe(12);
+      expect(parsed.metadata.cost.amount).toBe(0.0001);
+      expect(parsed.metadata.provider).toBe("openrouter");
     });
 
     it("appends to existing json-line file", async () => {
@@ -396,9 +446,9 @@ describe("commands.capture CaptureRunner", () => {
         stream: async function* (
           _req: LlmRequest,
           _signal: AbortSignal,
-        ): AsyncGenerator<string> {
-          yield "Partial ";
-          yield "content ";
+        ): AsyncGenerator<LlmStreamEvent> {
+          yield { type: "content", text: "Partial " };
+          yield { type: "content", text: "content " };
           throw new Error("Stream interrupted");
         },
       } as unknown as OpenRouterClient;

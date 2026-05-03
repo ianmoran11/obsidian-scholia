@@ -1,6 +1,7 @@
 import { Editor, MarkdownView } from "obsidian";
 import { buildSkeleton, appendToCallout } from "./callout";
 import type { BuildSkeletonOpts } from "./callout";
+import type { LlmStreamEvent } from "../llm/client";
 
 export class Stream {
   public streamId: string;
@@ -92,12 +93,19 @@ export class Stream {
     }
   }
 
-  async start(generator: AsyncGenerator<string>): Promise<void> {
-    for await (const chunk of generator) {
+  async start(
+    generator: AsyncGenerator<LlmStreamEvent>,
+    onMetadata?: (event: Extract<LlmStreamEvent, { type: "metadata" }>) => void,
+  ): Promise<void> {
+    for await (const event of generator) {
       if (this.abort.signal.aborted) {
         throw this.getAbortError();
       }
-      await this.writeChunk(chunk);
+      if (event.type === "content") {
+        await this.writeChunk(event.text);
+      } else {
+        onMetadata?.(event);
+      }
     }
 
     if (this.abort.signal.aborted) {

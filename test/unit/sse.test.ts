@@ -18,10 +18,29 @@ async function collectChunks(chunks: string[]): Promise<string[]> {
 
   const resp = new Response(stream);
   const result: string[] = [];
-  for await (const chunk of parseSseStream(resp)) {
-    result.push(chunk);
+  for await (const event of parseSseStream(resp)) {
+    if (event.type === "content") result.push(event.text);
   }
   return result;
+}
+
+async function collectEvents(chunks: string[]) {
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (chunks.length === 0) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(new TextEncoder().encode(chunks.shift()!));
+      if (chunks.length === 0) controller.close();
+    },
+  });
+
+  const events = [];
+  for await (const event of parseSseStream(new Response(stream))) {
+    events.push(event);
+  }
+  return events;
 }
 
 describe("parseSseStream", () => {
@@ -117,5 +136,29 @@ describe("parseSseStream", () => {
       'data: {"choices":[{"delta":{"content":"tail"}}]}',
     ]);
     expect(chunks).toEqual(["tail"]);
+  });
+
+  it("yields content plus final usage metadata", async () => {
+    const events = await collectEvents([
+      'data: {"choices":[{"delta":{"content":"hello"}}]}\n\n',
+      'data: {"choices":[{"delta":{}}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15},"cost":0.0002}\n\n',
+      "data: [DONE]\n\n",
+    ]);
+
+    expect(events).toEqual([
+      { type: "content", text: "hello" },
+      {
+        type: "metadata",
+        usage: {
+          promptTokens: 10,
+          completionTokens: 5,
+          totalTokens: 15,
+          reasoningTokens: undefined,
+          cachedTokens: undefined,
+        },
+        cost: { amount: 0.0002, currency: "USD", estimated: false },
+        providerRaw: expect.any(Object),
+      },
+    ]);
   });
 });

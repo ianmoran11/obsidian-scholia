@@ -1,4 +1,6 @@
 import { Editor } from "obsidian";
+import type { LlmRunMetadata } from "../llm/metadata";
+import { formatRunMetadataLine } from "../llm/metadata";
 
 export interface BuildSkeletonOpts {
   calloutType: string;
@@ -35,4 +37,8 @@ export function appendToCallout(
 
 export function formatError(message: string): string {
   return `> \n> **Error:** ${message}`;
+}
+
+export function formatCalloutMetadata(metadata: LlmRunMetadata): string {
+  return `\n\n**Metadata:** ${formatRunMetadataLine(metadata)}`;
 }
