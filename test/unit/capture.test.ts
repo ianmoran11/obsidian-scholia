@@ -167,6 +167,37 @@ describe("commands.capture CaptureRunner", () => {
       expect(file?.content).toContain(":Chapter -->");
     });
 
+    it("includes the custom probe question in markdown captures", async () => {
+      const runner = new CaptureRunner(mockApp as never);
+      const llmClient = createMockLlmClient(["Captured answer"]);
+      const config: TemplateConfig = {
+        name: "Probe",
+        filePath: "Probe.md",
+        contextScope: "full-note",
+        outputDestination: "inline",
+        alsoAppendTo: "_System/Captures.md",
+        appendFormat: "markdown",
+        requiresSelection: false,
+        commandPrefix: "Run",
+        hotkey: [],
+      };
+
+      await runner.runWithCapture(
+        llmClient,
+        {} as LlmRequest,
+        config,
+        createAbortSignal(),
+        vi.fn(),
+        "Reading/Note.md",
+        "Probe",
+        "What should I remember?",
+      );
+
+      const file = vault.getFileByPath("_System/Captures.md");
+      expect(file?.content).toContain("**Question:** What should I remember?");
+      expect(file?.content).toContain("Captured answer");
+    });
+
     it("appends to existing markdown file without duplicating header", async () => {
       vault.files.set("_System/Central-Flashcards.md", {
         path: "_System/Central-Flashcards.md",
@@ -370,6 +401,37 @@ describe("commands.capture CaptureRunner", () => {
       expect(file?.content).not.toContain("# Captures");
       const parsed = JSON.parse(file!.content.trim());
       expect(parsed.content).toBe("Entry content");
+    });
+
+    it("includes the custom probe question in json-line captures", async () => {
+      const runner = new CaptureRunner(mockApp as never);
+      const llmClient = createMockLlmClient(["Entry answer"]);
+      const config: TemplateConfig = {
+        name: "Probe",
+        filePath: "Probe.md",
+        contextScope: "full-note",
+        outputDestination: "inline",
+        alsoAppendTo: "Captures.jsonl",
+        appendFormat: "json-line",
+        requiresSelection: false,
+        commandPrefix: "Run",
+        hotkey: [],
+      };
+
+      await runner.runWithCapture(
+        llmClient,
+        {} as LlmRequest,
+        config,
+        createAbortSignal(),
+        vi.fn(),
+        "Reading/Note.md",
+        "Probe",
+        "Why does it matter?",
+      );
+
+      const parsed = JSON.parse(vault.getFileByPath("Captures.jsonl")!.content.trim());
+      expect(parsed.question).toBe("Why does it matter?");
+      expect(parsed.content).toBe("Entry answer");
     });
   });
 

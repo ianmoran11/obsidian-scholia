@@ -557,5 +557,128 @@ describe("TemplateRegistry", () => {
       expect(editor.getValue()).toContain("[!scholia-clarify]-");
       expect(editor.getValue()).toContain("Answer");
     });
+
+    it("passes the custom probe query into inline skeleton rendering", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const view = {
+        file: { path: "Reading/Note.md" },
+        editor: {
+          getSelection: () => "",
+          getValue: () => "# Heading\n\nBody",
+          getCursor: () => ({ line: 0, ch: 0 }),
+          getLine: () => "# Heading",
+          replaceRange: vi.fn(),
+          posToOffset: () => 0,
+          offsetToPos: () => ({ line: 0, ch: 0 }),
+        },
+      };
+      app.workspace.getActiveViewOfType = vi.fn(() => view);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app, { openRouterApiKey: "test-key" }),
+        mockStreamManager as any,
+      );
+      const runInline = vi
+        .spyOn(registry as any, "runInline")
+        .mockResolvedValue(undefined);
+      vi.spyOn(CustomProbeModal.prototype, "openAndWait").mockResolvedValue({
+        query: "Why does this matter?\nUse plain language.",
+        scope: "full-note",
+        alsoAppendToCentral: false,
+        reasoningEnabled: true,
+        reasoningEffort: "medium",
+        tokenBudget: 1024,
+      });
+
+      await (registry as any).runTemplateCommand(
+        "Edu-Templates/Probe.md",
+        {
+          contextScope: "full-note",
+          outputDestination: "inline",
+          customProbe: true,
+          requiresSelection: false,
+          systemPrompt: "prompt",
+        },
+        "Probe",
+      );
+
+      expect(runInline).toHaveBeenCalledOnce();
+      expect(runInline.mock.calls[0][7]).toBe(
+        "Why does this matter?\nUse plain language.",
+      );
+    });
+
+    it("renders the custom probe query in the inserted inline skeleton", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const editor = {
+        value: "Selected text",
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        getCursor: () => ({ line: 0, ch: 0 }),
+        getLine: () => "Selected text",
+        replaceRange(
+          this: { value: string },
+          text: string,
+          start: { line: number; ch: number },
+          end?: { line: number; ch: number },
+        ) {
+          const startOffset = this.posToOffset(start);
+          const endOffset = end ? this.posToOffset(end) : startOffset;
+          this.value =
+            this.value.slice(0, startOffset) +
+            text +
+            this.value.slice(endOffset);
+        },
+        posToOffset(
+          this: { value: string },
+          pos: { line: number; ch: number },
+        ) {
+          const lines = this.value.split("\n");
+          let offset = 0;
+          for (let i = 0; i < pos.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + pos.ch;
+        },
+        offsetToPos(this: { value: string }, offset: number) {
+          const lines = this.value.slice(0, offset).split("\n");
+          return { line: lines.length - 1, ch: lines[lines.length - 1].length };
+        },
+      };
+      const view = { file: { path: "Reading/Note.md" } };
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+      const llmClient = {
+        stream: async function* () {
+          yield { type: "content", text: "Answer" };
+        },
+      };
+
+      await (registry as any).runInline(
+        "Probe",
+        {
+          contextScope: "selection",
+          outputDestination: "inline",
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        "Selected text",
+        llmClient as any,
+        {} as any,
+        "Why does this matter?\nUse plain language.",
+      );
+
+      expect(editor.getValue()).toContain("**Question:** Why does this matter?");
+      expect(editor.getValue()).toContain("> Use plain language.");
+      expect(editor.getValue()).toContain("**Response:**");
+      expect(editor.getValue()).toContain("Answer");
+    });
   });
 });

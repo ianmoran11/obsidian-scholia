@@ -24,6 +24,7 @@ export class CaptureRunner {
     onChunk: (chunk: string) => Promise<void>,
     sourcePath: string | undefined,
     templateName: string | undefined,
+    question?: string,
   ): Promise<LlmRunMetadata> {
     let accumulatedContent = "";
     let usage: LlmUsage | undefined;
@@ -72,6 +73,7 @@ export class CaptureRunner {
           sourcePath,
           templateName,
           metadata,
+          question,
         });
         new Notice(`Scholia: captured to ${config.alsoAppendTo}`);
       }

@@ -8,6 +8,7 @@ export interface BuildSkeletonOpts {
   folded: boolean;
   commandName: string;
   selectionText: string;
+  questionText?: string;
 }
 
 export const STREAMING_CALLOUT_TYPE = "scholia-pending";
@@ -15,10 +16,15 @@ export const STREAMING_CALLOUT_TYPE = "scholia-pending";
 export function buildSkeleton(opts: BuildSkeletonOpts): string {
   const foldMarker = opts.folded ? "-" : "+";
   const safeSel = opts.selectionText.replace(/\n/g, "\n> ");
+  const safeQuestion = opts.questionText?.trim().replace(/\n/g, "\n> ");
+  const questionSection = safeQuestion
+    ? `> **Question:** ${safeQuestion}\n` + `> \n`
+    : "";
   return (
     `\n> [!${opts.calloutType}]${foldMarker} ${opts.calloutLabel}: ${opts.commandName}\n` +
     `> **Context:** *${safeSel}*\n` +
     `> \n` +
+    questionSection +
     `> **Response:**\n` +
     `> `
   );

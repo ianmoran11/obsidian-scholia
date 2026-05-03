@@ -300,6 +300,7 @@ export class TemplateRegistry {
         selection,
         llmClient,
         llmRequest,
+        effectiveConfig.customProbe ? result.query : undefined,
       );
     } else {
       await this.runAppend(
@@ -308,6 +309,7 @@ export class TemplateRegistry {
         view,
         llmClient,
         llmRequest,
+        effectiveConfig.customProbe ? result.query : undefined,
       );
     }
   }
@@ -320,6 +322,7 @@ export class TemplateRegistry {
     selection: string,
     llmClient: OpenRouterClient,
     llmRequest: LlmRequest,
+    questionText?: string,
   ): Promise<void> {
     const calloutType =
       config.calloutType ?? this.plugin.settings.defaultCalloutType;
@@ -351,6 +354,7 @@ export class TemplateRegistry {
         folded: calloutFolded,
         commandName: templateName,
         selectionText: selection,
+        questionText,
       },
       posAfterSelection,
     );
@@ -370,6 +374,7 @@ export class TemplateRegistry {
           },
           view.file?.path,
           templateName,
+          questionText,
         );
         if (this.plugin.settings.showRunMetadata) {
           await stream.writeChunk(formatCalloutMetadata(metadata));
@@ -431,6 +436,7 @@ export class TemplateRegistry {
     view: MarkdownView,
     llmClient: OpenRouterClient,
     llmRequest: LlmRequest,
+    questionText?: string,
   ): Promise<void> {
     const abortController = new AbortController();
     let accumulatedContent = "";
@@ -470,6 +476,7 @@ export class TemplateRegistry {
           usage,
           cost,
         }),
+        question: questionText,
       });
 
       new Notice(`Scholia: appended to ${destPath}`);

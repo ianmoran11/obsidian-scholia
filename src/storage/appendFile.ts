@@ -11,6 +11,7 @@ export interface AppendOptions {
   sourcePath?: string;
   templateName?: string;
   metadata?: LlmRunMetadata;
+  question?: string;
 }
 
 async function ensureFolderExists(
@@ -37,16 +38,18 @@ function buildMarkdownEntry(
   sourcePath?: string,
   templateName?: string,
   metadata?: LlmRunMetadata,
+  question?: string,
 ): string {
   const ts = new Date().toISOString();
   const basename = sourcePath
     ? (sourcePath.split("/").pop()?.replace(/\.md$/, "") ?? "")
     : "";
   const comment = `<!-- scholia:captured:${ts}:${basename} -->`;
+  const questionLine = question ? `\n\n**Question:** ${question}` : "";
   const metadataLine = metadata
     ? `\n\n**Metadata:** ${formatRunMetadataLine(metadata)}`
     : "";
-  return `---\n${comment}\n${content}${metadataLine}`;
+  return `---\n${comment}${questionLine}\n\n${content}${metadataLine}`;
 }
 
 function buildJsonLineEntry(
@@ -54,12 +57,14 @@ function buildJsonLineEntry(
   sourcePath?: string,
   templateName?: string,
   metadata?: LlmRunMetadata,
+  question?: string,
 ): string {
   const ts = new Date().toISOString();
   const entry = {
     ts,
     source: sourcePath ?? "",
     template: templateName ?? "",
+    question,
     content,
     metadata,
   };
@@ -70,7 +75,15 @@ export async function appendToVault(
   vault: Vault,
   options: AppendOptions,
 ): Promise<void> {
-  const { relativePath, content, format, sourcePath, templateName, metadata } = options;
+  const {
+    relativePath,
+    content,
+    format,
+    sourcePath,
+    templateName,
+    metadata,
+    question,
+  } = options;
 
   const parts = relativePath.split("/");
   if (parts.length > 1) {
@@ -81,7 +94,13 @@ export async function appendToVault(
   const file = vault.getFileByPath(relativePath);
 
   if (format === "markdown") {
-    const entry = buildMarkdownEntry(content, sourcePath, templateName, metadata);
+    const entry = buildMarkdownEntry(
+      content,
+      sourcePath,
+      templateName,
+      metadata,
+      question,
+    );
     if (file) {
       const existing = await vault.read(file);
       await vault.modify(file, existing + "\n\n" + entry);
@@ -90,7 +109,13 @@ export async function appendToVault(
       await vault.create(relativePath, header + entry);
     }
   } else {
-    const entry = buildJsonLineEntry(content, sourcePath, templateName, metadata);
+    const entry = buildJsonLineEntry(
+      content,
+      sourcePath,
+      templateName,
+      metadata,
+      question,
+    );
     if (file) {
       const existing = await vault.read(file);
       await vault.modify(file, existing + "\n" + entry);

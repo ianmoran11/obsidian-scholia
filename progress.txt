@@ -14,3 +14,17 @@ Verification:
 - npm run build passed.
 - Computer Use was used to inspect the running Obsidian desktop window and confirm the Scholia templates are visible in the active vault.
 - Follow-up fix: adjusted callout metadata formatting so the stream writer inserts it as a normal blockquoted metadata line instead of nested blockquote text.
+
+Scholia repeat questions in callout task completed on 2026-05-03.
+
+Implemented:
+- Added optional questionText support to Scholia callout skeletons.
+- Custom-probe inline generations now pass the user's query into the callout skeleton.
+- Visible custom-probe callouts now render Question before Response while preserving Context.
+- Markdown and JSON-line central captures now store the custom-probe question.
+
+Verification:
+- npm test -- --run passed: 11 test files, 159 tests.
+- npm run build passed.
+- Browser Use was used to open a local evidence page and confirm the visible callout contains the Question section.
+- Screenshot saved at evidence/screenshots/question-callout-demo.png.

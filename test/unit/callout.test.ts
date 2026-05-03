@@ -63,6 +63,36 @@ describe("buildSkeleton", () => {
     expect(skeleton).toContain("**Context:**");
   });
 
+  it("includes a visible question before the response when supplied", () => {
+    const skeleton = buildSkeleton({
+      calloutType: "scholia-pending",
+      calloutLabel: "Probe",
+      folded: true,
+      commandName: "Probe",
+      selectionText: "",
+      questionText: "How does this relate to memory?\nGive an example.",
+    });
+
+    expect(skeleton).toContain(
+      "**Question:** How does this relate to memory?\n> Give an example.",
+    );
+    expect(skeleton.indexOf("**Question:**")).toBeLessThan(
+      skeleton.indexOf("**Response:**"),
+    );
+  });
+
+  it("omits the question section when no question is supplied", () => {
+    const skeleton = buildSkeleton({
+      calloutType: "ai",
+      calloutLabel: "AI",
+      folded: true,
+      commandName: "Run",
+      selectionText: "Context",
+    });
+
+    expect(skeleton).not.toContain("**Question:**");
+  });
+
   it("includes command name in label", () => {
     const skeleton = buildSkeleton({
       calloutType: "scholia-flashcard",
