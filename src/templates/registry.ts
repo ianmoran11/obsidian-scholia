@@ -21,10 +21,14 @@ import { appendToVault } from "../storage/appendFile";
 import {
   formatCalloutMetadata,
   formatError,
+  formatFollowupSkeleton,
   type ScholiaRunSnapshot,
   STREAMING_CALLOUT_TYPE,
 } from "../stream/callout";
-import { findScholiaCalloutAt } from "../stream/calloutParser";
+import {
+  findScholiaCalloutAt,
+  stripCalloutForChat,
+} from "../stream/calloutParser";
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
 import type { ReasoningEffort } from "./types";
@@ -44,6 +48,7 @@ interface PluginRef {
       centralCaptureFile: string;
       enableHotReloadOfTemplates: boolean;
       showRunMetadata: boolean;
+      chatFollowupsEnabled: boolean;
   };
 }
 
@@ -336,6 +341,33 @@ export class TemplateRegistry {
     };
 
     if (effectiveConfig.outputDestination === "inline") {
+      if (
+        effectiveConfig.customProbe &&
+        this.plugin.settings.chatFollowupsEnabled
+      ) {
+        const parsed = findScholiaCalloutAt(editor);
+        if (parsed?.runSnapshot) {
+          await this.runChatFollowup(
+            templateName,
+            effectiveConfig,
+            view,
+            editor,
+            parsed,
+            llmClient,
+            {
+              ...llmRequest,
+              user: this.buildChatFollowupUserMessage({
+                contextText,
+                priorConversation: stripCalloutForChat(parsed.body),
+                followupQuestion: result.query,
+              }),
+            },
+            result.query,
+          );
+          return;
+        }
+      }
+
       await this.runInline(
         templatePath,
         templateName,
@@ -356,6 +388,93 @@ export class TemplateRegistry {
         llmRequest,
         effectiveConfig.customProbe ? result.query : undefined,
       );
+    }
+  }
+
+  private buildChatFollowupUserMessage(opts: {
+    contextText: string;
+    priorConversation: string;
+    followupQuestion: string;
+  }): string {
+    return [
+      "Use the selected/current note context and the existing Scholia conversation to answer the follow-up.",
+      "",
+      "Current note context:",
+      opts.contextText || "(none)",
+      "",
+      "Existing Scholia conversation:",
+      opts.priorConversation || "(none)",
+      "",
+      `Follow-up question: ${opts.followupQuestion}`,
+    ].join("\n");
+  }
+
+  private async runChatFollowup(
+    templateName: string,
+    config: TemplateConfig,
+    view: MarkdownView,
+    editor: import("obsidian").Editor,
+    parsed: NonNullable<ReturnType<typeof findScholiaCalloutAt>>,
+    llmClient: OpenRouterClient,
+    llmRequest: LlmRequest,
+    questionText: string,
+  ): Promise<void> {
+    const snapshot = parsed.runSnapshot;
+    if (!snapshot) return;
+
+    const streamId = `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const stream = new Stream(streamId, view.file?.path ?? "", editor, view);
+    const startedAt = Date.now();
+    const timestamp = new Date(startedAt).toISOString();
+    let usage: LlmUsage | undefined;
+    let cost: LlmCost | undefined;
+
+    if (!this.streamManager.addStream(stream)) {
+      new Notice("Scholia: Too many concurrent streams. Please wait.");
+      return;
+    }
+
+    const followupSkeleton = formatFollowupSkeleton(questionText);
+    stream.skeletonStart = parsed.startOffset;
+    stream.skeletonEnd = parsed.endOffset + followupSkeleton.length;
+    stream.writeOffset = parsed.endOffset + followupSkeleton.length;
+    stream.inRangeWriteInProgress = true;
+    try {
+      editor.replaceRange(followupSkeleton, editor.offsetToPos(parsed.endOffset));
+      stream.lastKnownContent = editor.getValue();
+      stream.lastKnownLength = stream.lastKnownContent.length;
+    } finally {
+      stream.inRangeWriteInProgress = false;
+    }
+    stream.setCalloutType(STREAMING_CALLOUT_TYPE);
+
+    try {
+      await stream.start(llmClient.stream(llmRequest, stream.abort.signal), (event) => {
+        usage = event.usage ?? usage;
+        cost = event.cost ?? cost;
+      });
+      if (this.plugin.settings.showRunMetadata) {
+        await stream.writeChunk(
+          formatCalloutMetadata(
+            buildRunMetadata(llmRequest, {
+              id: streamId,
+              timestamp,
+              contextScope: config.contextScope,
+              templateName,
+              durationMs: Date.now() - startedAt,
+              usage,
+              cost,
+            }),
+          ),
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Stream failed";
+      await this.writeStreamError(stream, msg);
+      new Notice(`Scholia: ${msg}`);
+    } finally {
+      stream.setCalloutType(snapshot.calloutType);
+      this.streamManager.removeStream(streamId);
     }
   }
 

@@ -55,6 +55,21 @@ function parseSnapshot(body: string): ScholiaRunSnapshot | undefined {
   }
 }
 
+export function stripCalloutForChat(body: string): string {
+  return body
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return (
+        !trimmed.startsWith("<!-- scholia:run") &&
+        !trimmed.startsWith("**Metadata:**")
+      );
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function findScholiaCalloutAt(
   editor: Editor,
   position?: EditorPosition,

@@ -4,6 +4,7 @@ import {
   appendToCallout,
   formatError,
   formatCalloutMetadata,
+  formatFollowupSkeleton,
 } from "../../src/stream/callout.ts";
 import { Editor } from "../mocks/obsidian";
 
@@ -103,6 +104,18 @@ describe("buildSkeleton", () => {
     });
 
     expect(skeleton).toContain("Flashcard: Flashcard");
+  });
+});
+
+describe("formatFollowupSkeleton", () => {
+  it("formats a follow-up turn inside an existing callout", () => {
+    const skeleton = formatFollowupSkeleton(
+      "Can you connect this to retrieval practice?\nKeep it brief.",
+    );
+
+    expect(skeleton).toBe(
+      "\n> ---\n> **Follow-up:** Can you connect this to retrieval practice?\n> Keep it brief.\n> \n> **Response:**\n> ",
+    );
   });
 });
 

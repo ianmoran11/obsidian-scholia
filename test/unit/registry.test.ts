@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TemplateRegistry } from "../../src/templates/registry";
 import { CustomProbeModal } from "../../src/ui/modal";
+import { buildSkeleton } from "../../src/stream/callout";
+import { findScholiaCalloutAt } from "../../src/stream/calloutParser";
 
 interface MockFile {
   path: string;
@@ -682,6 +684,121 @@ describe("TemplateRegistry", () => {
       expect(editor.getValue()).toContain("> Use plain language.");
       expect(editor.getValue()).toContain("**Response:**");
       expect(editor.getValue()).toContain("Answer");
+    });
+
+    it("appends chat follow-ups inside an existing generated callout", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+      const skeleton = buildSkeleton({
+        calloutType: "ai",
+        calloutLabel: "Probe",
+        folded: true,
+        commandName: "Probe",
+        selectionText: "Original context",
+        questionText: "Original question?",
+        runSnapshot: {
+          id: "scholia-test",
+          schemaVersion: 1,
+          templatePath: "Edu-Templates/Probe.md",
+          templateName: "Probe",
+          sourcePath: "Reading/Note.md",
+          question: "Original question?",
+          contextScope: "heading",
+          model: "test-model",
+          temperature: 0.7,
+          maxTokens: 1024,
+          reasoningEnabled: true,
+          reasoningEffort: "medium",
+          calloutType: "ai",
+          calloutLabel: "Probe",
+          calloutFolded: true,
+          outputDestination: "inline",
+          createdAt: "2026-05-03T00:00:00.000Z",
+        },
+      });
+      const editor = {
+        value: `# Note${skeleton}Original answer\n> \n> **Metadata:** model=test`,
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        getCursor() {
+          return this.offsetToPos(this.value.indexOf("Original answer"));
+        },
+        getLine(this: { value: string }, line: number) {
+          return this.value.split("\n")[line] ?? "";
+        },
+        replaceRange(
+          this: { value: string },
+          text: string,
+          start: { line: number; ch: number },
+          end?: { line: number; ch: number },
+        ) {
+          const startOffset = this.posToOffset(start);
+          const endOffset = end ? this.posToOffset(end) : startOffset;
+          this.value =
+            this.value.slice(0, startOffset) +
+            text +
+            this.value.slice(endOffset);
+        },
+        posToOffset(
+          this: { value: string },
+          pos: { line: number; ch: number },
+        ) {
+          const lines = this.value.split("\n");
+          let offset = 0;
+          for (let i = 0; i < pos.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + pos.ch;
+        },
+        offsetToPos(this: { value: string }, offset: number) {
+          const lines = this.value.slice(0, offset).split("\n");
+          return { line: lines.length - 1, ch: lines[lines.length - 1].length };
+        },
+      };
+      const parsed = findScholiaCalloutAt(editor as any);
+      const view = { file: { path: "Reading/Note.md" } };
+      let sentUserMessage = "";
+      const llmClient = {
+        stream: async function* (request: { user: string }) {
+          sentUserMessage = request.user;
+          yield { type: "content", text: "Follow-up answer" };
+        },
+      };
+
+      await (registry as any).runChatFollowup(
+        "Probe",
+        {
+          contextScope: "heading",
+          outputDestination: "inline",
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        parsed,
+        llmClient as any,
+        {
+          model: "test-model",
+          temperature: 0.7,
+          maxTokens: 1024,
+          reasoningEnabled: true,
+          reasoningEffort: "medium",
+          system: "prompt\n\nUser request: Follow-up question?",
+          user: "context and history",
+        },
+        "Follow-up question?",
+      );
+
+      expect(editor.getValue()).toContain("[!ai]-");
+      expect(editor.getValue()).toContain("> ---");
+      expect(editor.getValue()).toContain("**Follow-up:** Follow-up question?");
+      expect(editor.getValue()).toContain("Follow-up answer");
+      expect(sentUserMessage).toBe("context and history");
     });
   });
 });

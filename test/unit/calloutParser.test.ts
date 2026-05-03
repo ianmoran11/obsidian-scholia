@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildSkeleton } from "../../src/stream/callout";
-import { findScholiaCalloutAt } from "../../src/stream/calloutParser";
+import {
+  findScholiaCalloutAt,
+  stripCalloutForChat,
+} from "../../src/stream/calloutParser";
 import { Editor } from "../mocks/obsidian";
 
 describe("findScholiaCalloutAt", () => {
@@ -59,5 +62,34 @@ describe("findScholiaCalloutAt", () => {
     editor.setValue("> A quoted passage\n> with two lines");
 
     expect(findScholiaCalloutAt(editor, { line: 1, ch: 2 })).toBeNull();
+  });
+});
+
+describe("stripCalloutForChat", () => {
+  it("removes run comments and metadata while preserving conversation turns", () => {
+    const stripped = stripCalloutForChat(
+      [
+        '<!-- scholia:run {"id":"scholia-test"} -->',
+        "**Context:** *A passage*",
+        "",
+        "**Question:** What matters?",
+        "",
+        "**Response:**",
+        "It matters because...",
+        "",
+        "**Metadata:** model=test; tokens=12",
+        "---",
+        "**Follow-up:** Why?",
+        "",
+        "**Response:**",
+        "Because recall strengthens memory.",
+      ].join("\n"),
+    );
+
+    expect(stripped).not.toContain("scholia:run");
+    expect(stripped).not.toContain("**Metadata:**");
+    expect(stripped).toContain("**Question:** What matters?");
+    expect(stripped).toContain("**Follow-up:** Why?");
+    expect(stripped).toContain("Because recall strengthens memory.");
   });
 });

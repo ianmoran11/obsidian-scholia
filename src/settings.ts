@@ -23,6 +23,7 @@ export interface ScholiaSettings {
   debugLogging: boolean;
   enableHotReloadOfTemplates: boolean;
   showRunMetadata: boolean;
+  chatFollowupsEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: ScholiaSettings = {
@@ -38,6 +39,7 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   debugLogging: false,
   enableHotReloadOfTemplates: true,
   showRunMetadata: true,
+  chatFollowupsEnabled: true,
 };
 
 class FolderSuggest extends AbstractInputSuggest<TFolder> {
@@ -245,6 +247,18 @@ export class ScholiaSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.showRunMetadata)
           .onChange(async (value) => {
             this.plugin.settings.showRunMetadata = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Chat follow-ups")
+      .setDesc("Append custom-probe follow-up questions inside the current Scholia callout")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.chatFollowupsEnabled)
+          .onChange(async (value) => {
+            this.plugin.settings.chatFollowupsEnabled = value;
             await this.plugin.saveSettings();
           }),
       );

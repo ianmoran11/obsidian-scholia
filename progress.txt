@@ -43,3 +43,18 @@ Verification:
 - npm run build passed.
 - Computer Use was used to inspect the rendered regenerate evidence page and confirm the visible Regenerate button.
 - Screenshot saved at evidence/screenshots/regenerate-callout-demo.png.
+
+Scholia allow for chat task completed on 2026-05-03.
+
+Implemented:
+- Added chatFollowupsEnabled setting, defaulting to true, with a settings-tab toggle.
+- Custom-probe inline runs now detect when the cursor is inside a generated Scholia callout and append a follow-up turn instead of creating a new callout.
+- Follow-up requests include current note context, stripped prior callout conversation, and the new follow-up question.
+- Follow-up responses stream at the end of the existing callout and write per-turn metadata when showRunMetadata is enabled.
+- Added helpers to format follow-up sections and strip run comments/metadata from chat history.
+
+Verification:
+- npm test -- --run passed: 12 test files, 165 tests.
+- npm run build passed.
+- Browser Use / Computer Use was used to inspect the rendered chat follow-up evidence page and confirm the follow-up appears inside the same Scholia callout.
+- Screenshot saved at evidence/screenshots/chat-followup-demo.png.

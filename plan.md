@@ -155,7 +155,7 @@ How to implement:
   - Regeneration replacement preserves question/context and only changes response/metadata.
   - External edits inside the regenerating callout abort the stream.
 
-### - [ ] Scholia: allow for chat
+### - [x] Scholia: allow for chat
 
 If the user's cursor or selection is in the Scholia callout box, treat the question as a followup to the current callout and append the question and response to the existing content within the callout box.
 

@@ -81,3 +81,8 @@ export function formatError(message: string): string {
 export function formatCalloutMetadata(metadata: LlmRunMetadata): string {
   return `\n\n**Metadata:** ${formatRunMetadataLine(metadata)}`;
 }
+
+export function formatFollowupSkeleton(questionText: string): string {
+  const safeQuestion = questionText.trim().replace(/\n/g, "\n> ");
+  return `\n> ---\n> **Follow-up:** ${safeQuestion}\n> \n> **Response:**\n> `;
+}
