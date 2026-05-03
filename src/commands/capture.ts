@@ -6,6 +6,7 @@ import type { LlmRunMetadata } from "../llm/metadata";
 import type { TemplateConfig } from "../templates/types";
 import { appendToVault } from "../storage/appendFile";
 import { NoopSqliteStore } from "../storage/sqlite";
+import { formatGeneratedForSpacedRepetition } from "../spacedRepetition/format";
 
 const sqliteStore = new NoopSqliteStore();
 
@@ -66,9 +67,16 @@ export class CaptureRunner {
       });
 
       if (config.alsoAppendTo) {
+        const captureContent = config.spacedRepetition
+          ? formatGeneratedForSpacedRepetition(accumulatedContent, {
+              format: config.srFormat ?? "basic",
+              deck: config.srDeck,
+              tags: config.srTags,
+            })
+          : accumulatedContent;
         await appendToVault(this.app.vault, {
           relativePath: config.alsoAppendTo,
-          content: accumulatedContent,
+          content: captureContent,
           format: config.appendFormat ?? "markdown",
           sourcePath,
           templateName,

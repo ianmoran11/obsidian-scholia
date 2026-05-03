@@ -39,6 +39,7 @@ import {
   extractTtsTextFromNote,
 } from "../audio/text";
 import { saveAudioToVault } from "../audio/storage";
+import { formatGeneratedForSpacedRepetition } from "../spacedRepetition/format";
 
 interface PluginRef {
   app: App;
@@ -56,6 +57,7 @@ interface PluginRef {
       enableHotReloadOfTemplates: boolean;
       showRunMetadata: boolean;
       chatFollowupsEnabled: boolean;
+      spacedRepetitionIntegrationEnabled: boolean;
       deepInfraApiKey: string;
       enableAudioGeneration: boolean;
       ttsModel: string;
@@ -316,6 +318,9 @@ export class TemplateRegistry {
     effectiveConfig.reasoningEnabled = result.reasoningEnabled;
     effectiveConfig.reasoningEffort = result.reasoningEffort;
     effectiveConfig.maxTokens = result.tokenBudget;
+    if (!this.plugin.settings.spacedRepetitionIntegrationEnabled) {
+      effectiveConfig.spacedRepetition = false;
+    }
 
     if (effectiveConfig.customProbe) {
       systemPrompt = `${effectiveConfig.systemPrompt}\n\nUser request: ${result.query}`;
@@ -528,6 +533,7 @@ export class TemplateRegistry {
     const timestamp = new Date(startedAt).toISOString();
     let usage: LlmUsage | undefined;
     let cost: LlmCost | undefined;
+    let accumulatedContent = "";
 
     if (!this.streamManager.addStream(stream)) {
       new Notice("Scholia: Too many concurrent streams. Please wait.");
@@ -596,6 +602,9 @@ export class TemplateRegistry {
             usage = event.usage ?? usage;
             cost = event.cost ?? cost;
           },
+          (chunk) => {
+            accumulatedContent += chunk;
+          },
         );
         if (this.plugin.settings.showRunMetadata) {
           await stream.writeChunk(
@@ -618,9 +627,35 @@ export class TemplateRegistry {
         new Notice(`Scholia: ${msg}`);
       } finally {
         stream.setCalloutType(calloutType);
+        if (!stream.isAborted && config.spacedRepetition) {
+          this.insertSrCardAfterInlineCallout(editor, stream.writeOffset, accumulatedContent, config);
+        }
         cleanup();
       }
     }
+  }
+
+  private insertSrCardAfterInlineCallout(
+    editor: import("obsidian").Editor,
+    offset: number,
+    content: string,
+    config: TemplateConfig,
+  ): void {
+    const formatted = this.formatSpacedRepetitionContent(content, config);
+    if (!formatted) return;
+    const card = `\n\n<!-- scholia:sr-card -->\n${formatted}\n`;
+    editor.replaceRange(card, editor.offsetToPos(offset));
+  }
+
+  private formatSpacedRepetitionContent(
+    content: string,
+    config: TemplateConfig,
+  ): string {
+    return formatGeneratedForSpacedRepetition(content, {
+      format: config.srFormat ?? "basic",
+      deck: config.srDeck,
+      tags: config.srTags,
+    });
   }
 
   private buildRunSnapshotForCallout(opts: {
@@ -973,7 +1008,9 @@ export class TemplateRegistry {
 
       await appendToVault(this.app.vault, {
         relativePath: destPath,
-        content: accumulatedContent,
+        content: config.spacedRepetition
+          ? this.formatSpacedRepetitionContent(accumulatedContent, config)
+          : accumulatedContent,
         format: appendFormat,
         sourcePath: view.file?.path,
         templateName,

@@ -122,12 +122,14 @@ export class Stream {
   async start(
     generator: AsyncGenerator<LlmStreamEvent>,
     onMetadata?: (event: Extract<LlmStreamEvent, { type: "metadata" }>) => void,
+    onContent?: (text: string) => void,
   ): Promise<void> {
     for await (const event of generator) {
       if (this.abort.signal.aborted) {
         throw this.getAbortError();
       }
       if (event.type === "content") {
+        onContent?.(event.text);
         await this.writeChunk(event.text);
       } else {
         onMetadata?.(event);

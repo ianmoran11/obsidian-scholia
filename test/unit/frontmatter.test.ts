@@ -263,6 +263,32 @@ describe("frontmatter.parseFrontmatter", () => {
     expect(result.config.appendFormat).toBe("json-line");
   });
 
+  it("parses spaced repetition options", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      spaced_repetition: true,
+      sr_format: "multiline",
+      sr_deck: "#flashcards/scholia",
+      sr_tags: ["#exam", "ai-generated"],
+    };
+    const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
+    expect(result.config.spacedRepetition).toBe(true);
+    expect(result.config.srFormat).toBe("multiline");
+    expect(result.config.srDeck).toBe("#flashcards/scholia");
+    expect(result.config.srTags).toEqual(["#exam", "ai-generated"]);
+  });
+
+  it("defaults invalid spaced repetition format to basic", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      sr_format: "invalid",
+    };
+    const result = parseFrontmatter(frontmatter, "Prompt", "test.md", "ai");
+    expect(result.config.srFormat).toBe("basic");
+  });
+
   it("accepts all valid context_scope values", () => {
     const scopes: RawTemplateFrontmatter["context_scope"][] = [
       "selection",

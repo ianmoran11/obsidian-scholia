@@ -5,6 +5,7 @@ import type {
   OutputDestination,
   AppendFormat,
   ReasoningEffort,
+  SpacedRepetitionFormat,
   TemplateConfig,
   RawTemplateFrontmatter,
 } from "./types";
@@ -25,6 +26,11 @@ const VALID_REASONING_EFFORTS: ReasoningEffort[] = [
   "medium",
   "high",
   "xhigh",
+];
+const VALID_SR_FORMATS: SpacedRepetitionFormat[] = [
+  "basic",
+  "multiline",
+  "cloze",
 ];
 
 export interface ParseResult {
@@ -209,6 +215,34 @@ export function parseFrontmatter(
     config.appendFormat = raw.append_format as AppendFormat;
   } else {
     config.appendFormat = "markdown";
+  }
+
+  if (typeof raw.spaced_repetition === "boolean") {
+    config.spacedRepetition = raw.spaced_repetition;
+  }
+
+  if (
+    typeof raw.sr_format === "string" &&
+    VALID_SR_FORMATS.includes(raw.sr_format as SpacedRepetitionFormat)
+  ) {
+    config.srFormat = raw.sr_format as SpacedRepetitionFormat;
+  } else {
+    config.srFormat = "basic";
+  }
+
+  if (typeof raw.sr_deck === "string") {
+    config.srDeck = raw.sr_deck;
+  }
+
+  if (Array.isArray(raw.sr_tags)) {
+    config.srTags = raw.sr_tags.filter(
+      (tag): tag is string => typeof tag === "string" && tag.trim().length > 0,
+    );
+  } else if (typeof raw.sr_tags === "string" && raw.sr_tags.trim()) {
+    config.srTags = raw.sr_tags
+      .split(/[,\s]+/)
+      .map((tag) => tag.trim())
+      .filter(Boolean);
   }
 
   return { config: config as TemplateConfig, warnings, isValid: true };

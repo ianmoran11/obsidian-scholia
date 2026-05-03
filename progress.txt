@@ -81,3 +81,21 @@ Verification:
 - A live DeepInfra request with neutral verification text produced a WAV file at evidence/screenshots/scholia-audio-verification.wav.
 - A second live DeepInfra request with 500 neutral words produced a 10 MB WAV file at evidence/screenshots/scholia-audio-500-token-verification.wav.
 - A follow-up live DeepInfra request with 500 neutral words and output_format=mp3 produced evidence/screenshots/scholia-audio-500-token-verification.mp3.
+
+Scholia Spaced Repetition integration task completed on 2026-05-03.
+
+Implemented:
+- Confirmed the current Obsidian Spaced Repetition card syntax from the plugin docs: deck tags such as #flashcards, basic cards with Question::Answer, multiline cards with ?, and cloze cards with ==deleted text==.
+- Added template frontmatter options for spaced_repetition, sr_format, sr_deck, and sr_tags.
+- Added a global Spaced Repetition integration setting, defaulting to false.
+- Added deterministic SR formatting helpers for basic, multiline, and cloze cards.
+- Updated captures and append output so enabled flashcard templates write parseable SR markdown instead of blockquoted callout text.
+- Updated inline-only SR runs to append a separate parseable card after the readable Scholia callout.
+- Updated the sample Flashcard template to opt into SR basic format and #flashcards/scholia.
+
+Verification:
+- npm test -- --run passed: 15 test files, 180 tests.
+- npx tsc --noEmit passed.
+- npm run build passed.
+- Computer Use was used to inspect the rendered evidence page showing readable Scholia output beside SR-compatible markdown.
+- Screenshot saved at evidence/screenshots/spaced-repetition-demo.png.

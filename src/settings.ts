@@ -24,6 +24,7 @@ export interface ScholiaSettings {
   enableHotReloadOfTemplates: boolean;
   showRunMetadata: boolean;
   chatFollowupsEnabled: boolean;
+  spacedRepetitionIntegrationEnabled: boolean;
   deepInfraApiKey: string;
   enableAudioGeneration: boolean;
   ttsModel: string;
@@ -45,6 +46,7 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   enableHotReloadOfTemplates: true,
   showRunMetadata: true,
   chatFollowupsEnabled: true,
+  spacedRepetitionIntegrationEnabled: false,
   deepInfraApiKey: "",
   enableAudioGeneration: false,
   ttsModel: "hexgrad/Kokoro-82M",
@@ -274,6 +276,18 @@ export class ScholiaSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("Spaced Repetition integration")
+      .setDesc("Format enabled templates as Obsidian Spaced Repetition flashcards")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.spacedRepetitionIntegrationEnabled)
+          .onChange(async (value) => {
+            this.plugin.settings.spacedRepetitionIntegrationEnabled = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName("Enable audio generation")
       .setDesc("Allow Scholia to create TTS audio with DeepInfra")
       .addToggle((toggle) =>
@@ -475,6 +489,9 @@ command_prefix: "Run"
 hotkey: []
 also_append_to: "_System/Central-Flashcards.md"
 append_format: markdown
+spaced_repetition: true
+sr_format: basic
+sr_deck: "#flashcards/scholia"
 ---
 You are a study assistant. Convert the selection into one Anki-style flashcard.
 Output exactly:

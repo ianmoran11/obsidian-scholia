@@ -10,6 +10,7 @@ export type ReasoningEffort =
   | "medium"
   | "high"
   | "xhigh";
+export type SpacedRepetitionFormat = "basic" | "multiline" | "cloze";
 
 export interface TemplateConfig {
   contextScope: ContextScope;
@@ -28,6 +29,10 @@ export interface TemplateConfig {
   customProbe?: boolean;
   alsoAppendTo?: string;
   appendFormat?: AppendFormat;
+  spacedRepetition?: boolean;
+  srFormat?: SpacedRepetitionFormat;
+  srDeck?: string;
+  srTags?: string[];
   systemPrompt: string;
 }
 
@@ -49,4 +54,8 @@ export interface RawTemplateFrontmatter {
   custom_probe?: unknown;
   also_append_to?: unknown;
   append_format?: unknown;
+  spaced_repetition?: unknown;
+  sr_format?: unknown;
+  sr_deck?: unknown;
+  sr_tags?: unknown;
 }

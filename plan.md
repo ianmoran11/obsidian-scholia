@@ -241,7 +241,7 @@ How to implement:
   - storage creates folders and writes binary data.
   - command inserts audio embed in the expected place.
 
-### - [ ] Scholia: integrate with Obsidian "Spaced Repetition" plugin
+### - [x] Scholia: integrate with Obsidian "Spaced Repetition" plugin
 
 Ensure Scholia integrates well with the Spaced Repetition plugin.
 

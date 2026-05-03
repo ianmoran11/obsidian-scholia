@@ -167,6 +167,43 @@ describe("commands.capture CaptureRunner", () => {
       expect(file?.content).toContain(":Chapter -->");
     });
 
+    it("writes parseable Spaced Repetition cards for enabled flashcard captures", async () => {
+      const runner = new CaptureRunner(mockApp as never);
+      const llmClient = createMockLlmClient(["Q: What is retrieval practice?\nA: Recalling from memory."]);
+
+      const config: TemplateConfig = {
+        name: "Flashcard",
+        filePath: "Flashcard.md",
+        contextScope: "selection",
+        outputDestination: "inline",
+        alsoAppendTo: "_System/Central-Flashcards.md",
+        appendFormat: "markdown",
+        spacedRepetition: true,
+        srFormat: "basic",
+        srDeck: "#flashcards/scholia",
+        requiresSelection: true,
+        commandPrefix: "Run",
+        hotkey: [],
+      };
+
+      await runner.runWithCapture(
+        llmClient,
+        {} as LlmRequest,
+        config,
+        createAbortSignal(),
+        vi.fn(),
+        "Reading/Chapter.md",
+        "Flashcard",
+      );
+
+      const file = vault.getFileByPath("_System/Central-Flashcards.md");
+      expect(file?.content).toContain("#flashcards/scholia");
+      expect(file?.content).toContain(
+        "What is retrieval practice?::Recalling from memory.",
+      );
+      expect(file?.content).not.toContain("> What is retrieval practice?");
+    });
+
     it("includes the custom probe question in markdown captures", async () => {
       const runner = new CaptureRunner(mockApp as never);
       const llmClient = createMockLlmClient(["Captured answer"]);
