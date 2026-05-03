@@ -1,6 +1,7 @@
 import { Editor } from "obsidian";
 import type { LlmRunMetadata } from "../llm/metadata";
 import { formatRunMetadataLine } from "../llm/metadata";
+import type { ContextScope, ReasoningEffort } from "../templates/types";
 
 export interface BuildSkeletonOpts {
   calloutType: string;
@@ -9,9 +10,37 @@ export interface BuildSkeletonOpts {
   commandName: string;
   selectionText: string;
   questionText?: string;
+  runSnapshot?: ScholiaRunSnapshot;
 }
 
 export const STREAMING_CALLOUT_TYPE = "scholia-pending";
+export const SCHOLIA_RUN_MARKER = "scholia:run";
+
+export interface ScholiaRunSnapshot {
+  id: string;
+  schemaVersion: 1;
+  templatePath: string;
+  templateName: string;
+  sourcePath?: string;
+  question?: string;
+  contextScope: ContextScope;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  reasoningEnabled: boolean;
+  reasoningEffort: ReasoningEffort;
+  calloutType: string;
+  calloutLabel: string;
+  calloutFolded: boolean;
+  outputDestination: string;
+  createdAt: string;
+  lastRegeneratedAt?: string;
+}
+
+export function serializeRunSnapshot(snapshot: ScholiaRunSnapshot): string {
+  const json = JSON.stringify(snapshot).replace(/-->/g, "--\\u003e");
+  return `<!-- ${SCHOLIA_RUN_MARKER} ${json} -->`;
+}
 
 export function buildSkeleton(opts: BuildSkeletonOpts): string {
   const foldMarker = opts.folded ? "-" : "+";
@@ -20,8 +49,12 @@ export function buildSkeleton(opts: BuildSkeletonOpts): string {
   const questionSection = safeQuestion
     ? `> **Question:** ${safeQuestion}\n` + `> \n`
     : "";
+  const snapshotLine = opts.runSnapshot
+    ? `> ${serializeRunSnapshot(opts.runSnapshot)}\n`
+    : "";
   return (
     `\n> [!${opts.calloutType}]${foldMarker} ${opts.calloutLabel}: ${opts.commandName}\n` +
+    snapshotLine +
     `> **Context:** *${safeSel}*\n` +
     `> \n` +
     questionSection +

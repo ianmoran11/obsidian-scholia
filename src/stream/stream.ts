@@ -48,6 +48,32 @@ export class Stream {
     this.lastKnownLength = this.lastKnownContent.length;
   }
 
+  replaceCalloutResponse(opts: {
+    startOffset: number;
+    endOffset: number;
+    responseStartOffset: number;
+    responseEndOffset: number;
+  }): void {
+    this.skeletonStart = opts.startOffset;
+    this.skeletonEnd = opts.endOffset;
+    this.writeOffset = opts.responseStartOffset;
+
+    this.inRangeWriteInProgress = true;
+    try {
+      this.editor.replaceRange(
+        "",
+        this.editor.offsetToPos(opts.responseStartOffset),
+        this.editor.offsetToPos(opts.responseEndOffset),
+      );
+      const delta = opts.responseEndOffset - opts.responseStartOffset;
+      this.skeletonEnd -= delta;
+      this.lastKnownContent = this.editor.getValue();
+      this.lastKnownLength = this.lastKnownContent.length;
+    } finally {
+      this.inRangeWriteInProgress = false;
+    }
+  }
+
   async writeChunk(raw: string): Promise<void> {
     this.inRangeWriteInProgress = true;
     try {

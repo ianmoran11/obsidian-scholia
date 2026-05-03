@@ -28,3 +28,18 @@ Verification:
 - npm run build passed.
 - Browser Use was used to open a local evidence page and confirm the visible callout contains the Question section.
 - Screenshot saved at evidence/screenshots/question-callout-demo.png.
+
+Scholia regenerate option task completed on 2026-05-03.
+
+Implemented:
+- Added a durable scholia:run snapshot comment to new inline callouts with template, source, question, context scope, model, token, reasoning, and callout options.
+- Added callout parsing that finds generated Scholia callouts, reads snapshots, and identifies response/metadata replacement boundaries.
+- Added Scholia: Regenerate current callout command.
+- Added a rendered Regenerate button for callouts with a valid snapshot, using the same regeneration service as the command.
+- Regeneration re-extracts fresh context, replays the original template/question/run options, temporarily marks the callout pending, and replaces only the response plus metadata.
+
+Verification:
+- npm test -- --run passed: 12 test files, 162 tests.
+- npm run build passed.
+- Computer Use was used to inspect the rendered regenerate evidence page and confirm the visible Regenerate button.
+- Screenshot saved at evidence/screenshots/regenerate-callout-demo.png.

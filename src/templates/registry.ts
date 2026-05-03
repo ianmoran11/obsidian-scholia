@@ -21,8 +21,10 @@ import { appendToVault } from "../storage/appendFile";
 import {
   formatCalloutMetadata,
   formatError,
+  type ScholiaRunSnapshot,
   STREAMING_CALLOUT_TYPE,
 } from "../stream/callout";
+import { findScholiaCalloutAt } from "../stream/calloutParser";
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
 import type { ReasoningEffort } from "./types";
@@ -117,6 +119,48 @@ export class TemplateRegistry {
     });
 
     return true;
+  }
+
+  registerRegenerateCommand(): void {
+    this.plugin.addCommand({
+      id: "scholia.regenerate-current-callout",
+      name: "Scholia: Regenerate current callout",
+      callback: () => {
+        this.regenerateActiveCallout();
+      },
+    });
+  }
+
+  registerRegeneratePostProcessor(
+    register: (processor: (el: HTMLElement, ctx: unknown) => void) => void,
+  ): void {
+    register((el, ctx) => {
+      const callouts = el.querySelectorAll<HTMLElement>(".callout");
+      callouts.forEach((callout) => {
+        if (!callout.innerHTML.includes("scholia:run")) return;
+        if (callout.querySelector(".scholia-regenerate-button")) return;
+
+        const button = callout.createEl("button", {
+          cls: "scholia-regenerate-button",
+          text: "Regenerate",
+        });
+        button.type = "button";
+        button.addEventListener("click", () => {
+          const section = (
+            ctx as {
+              sourcePath?: string;
+              getSectionInfo?: (el: HTMLElement) => { lineStart: number } | null;
+            }
+          ).getSectionInfo?.(callout);
+          const sourcePath = (ctx as { sourcePath?: string }).sourcePath;
+          if (sourcePath && section) {
+            this.regenerateRenderedCallout(sourcePath, section.lineStart);
+          } else {
+            this.regenerateActiveCallout();
+          }
+        });
+      });
+    });
   }
 
   private async parseTemplate(file: TFile): Promise<ParseResult | null> {
@@ -293,6 +337,7 @@ export class TemplateRegistry {
 
     if (effectiveConfig.outputDestination === "inline") {
       await this.runInline(
+        templatePath,
         templateName,
         effectiveConfig,
         view,
@@ -315,6 +360,7 @@ export class TemplateRegistry {
   }
 
   private async runInline(
+    templatePath: string,
     templateName: string,
     config: TemplateConfig,
     view: MarkdownView,
@@ -355,6 +401,20 @@ export class TemplateRegistry {
         commandName: templateName,
         selectionText: selection,
         questionText,
+        runSnapshot: this.buildRunSnapshotForCallout({
+          id: streamId,
+          templatePath,
+          templateName,
+          sourcePath: view.file?.path,
+          questionText,
+          contextScope: config.contextScope,
+          llmRequest,
+          calloutType,
+          calloutLabel,
+          calloutFolded,
+          outputDestination: config.outputDestination,
+          createdAt: timestamp,
+        }),
       },
       posAfterSelection,
     );
@@ -419,6 +479,208 @@ export class TemplateRegistry {
         stream.setCalloutType(calloutType);
         cleanup();
       }
+    }
+  }
+
+  private buildRunSnapshotForCallout(opts: {
+    id: string;
+    templatePath: string;
+    templateName: string;
+    sourcePath?: string;
+    questionText?: string;
+    contextScope: TemplateConfig["contextScope"];
+    llmRequest: LlmRequest;
+    calloutType: string;
+    calloutLabel: string;
+    calloutFolded: boolean;
+    outputDestination: TemplateConfig["outputDestination"];
+    createdAt: string;
+    lastRegeneratedAt?: string;
+  }): ScholiaRunSnapshot {
+    return {
+      id: opts.id,
+      schemaVersion: 1,
+      templatePath: opts.templatePath,
+      templateName: opts.templateName,
+      sourcePath: opts.sourcePath,
+      question: opts.questionText,
+      contextScope: opts.contextScope,
+      model: opts.llmRequest.model,
+      temperature: opts.llmRequest.temperature,
+      maxTokens: opts.llmRequest.maxTokens,
+      reasoningEnabled: opts.llmRequest.reasoningEnabled,
+      reasoningEffort: opts.llmRequest.reasoningEffort,
+      calloutType: opts.calloutType,
+      calloutLabel: opts.calloutLabel,
+      calloutFolded: opts.calloutFolded,
+      outputDestination: String(opts.outputDestination),
+      createdAt: opts.createdAt,
+      lastRegeneratedAt: opts.lastRegeneratedAt,
+    };
+  }
+
+  async regenerateActiveCallout(): Promise<void> {
+    const apiKey = this.plugin.settings.openRouterApiKey;
+    if (!apiKey) {
+      new Notice("Scholia: OpenRouter API key not set. Configure in Settings.");
+      return;
+    }
+
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      new Notice("Scholia: No active note editor.");
+      return;
+    }
+
+    await this.regenerateCalloutInView(view);
+  }
+
+  async regenerateRenderedCallout(
+    sourcePath: string,
+    lineStart: number,
+  ): Promise<void> {
+    const file = this.app.vault.getFileByPath(sourcePath);
+    if (!file) {
+      new Notice(`Scholia: note not found: ${sourcePath}`);
+      return;
+    }
+
+    await this.app.workspace.getLeaf().openFile(file);
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      new Notice("Scholia: No active note editor.");
+      return;
+    }
+
+    await this.regenerateCalloutInView(view, { line: lineStart, ch: 0 });
+  }
+
+  private async regenerateCalloutInView(
+    view: MarkdownView,
+    position?: { line: number; ch: number },
+  ): Promise<void> {
+    const editor = view.editor;
+    const parsed = findScholiaCalloutAt(editor, position);
+    if (!parsed?.runSnapshot) {
+      new Notice("Scholia: place the cursor inside a generated callout.");
+      return;
+    }
+    if (
+      parsed.responseStartOffset === undefined ||
+      parsed.responseEndOffset === undefined
+    ) {
+      new Notice("Scholia: this callout has no response section to regenerate.");
+      return;
+    }
+
+    const templateFile = this.app.vault.getFileByPath(
+      parsed.runSnapshot.templatePath,
+    );
+    if (!templateFile) {
+      new Notice(`Scholia: template not found: ${parsed.runSnapshot.templatePath}`);
+      return;
+    }
+
+    const parsedTemplate = await this.parseTemplate(templateFile);
+    if (!parsedTemplate?.isValid) {
+      return;
+    }
+
+    const snapshot = parsed.runSnapshot;
+    const config: TemplateConfig = {
+      ...parsedTemplate.config,
+      contextScope: snapshot.contextScope,
+      outputDestination: "inline",
+      model: snapshot.model,
+      temperature: snapshot.temperature,
+      maxTokens: snapshot.maxTokens,
+      reasoningEnabled: snapshot.reasoningEnabled,
+      reasoningEffort: snapshot.reasoningEffort,
+      calloutType: snapshot.calloutType,
+      calloutLabel: snapshot.calloutLabel,
+      calloutFolded: snapshot.calloutFolded,
+    };
+    const system = snapshot.question
+      ? `${parsedTemplate.config.systemPrompt}\n\nUser request: ${snapshot.question}`
+      : parsedTemplate.config.systemPrompt;
+    const llmRequest: LlmRequest = {
+      model: snapshot.model,
+      temperature: snapshot.temperature,
+      maxTokens: snapshot.maxTokens,
+      reasoningEnabled: snapshot.reasoningEnabled,
+      reasoningEffort: snapshot.reasoningEffort,
+      system,
+      user: extractContext(this.app, editor, view, snapshot.contextScope),
+    };
+
+    await this.regenerateParsedCallout(
+      view,
+      editor,
+      parsed,
+      config,
+      new OpenRouterClient(apiKey),
+      llmRequest,
+    );
+  }
+
+  private async regenerateParsedCallout(
+    view: MarkdownView,
+    editor: import("obsidian").Editor,
+    parsed: NonNullable<ReturnType<typeof findScholiaCalloutAt>>,
+    config: TemplateConfig,
+    llmClient: OpenRouterClient,
+    llmRequest: LlmRequest,
+  ): Promise<void> {
+    const snapshot = parsed.runSnapshot;
+    if (!snapshot || parsed.responseStartOffset === undefined) return;
+
+    const streamId = `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const stream = new Stream(streamId, view.file?.path ?? "", editor, view);
+    const startedAt = Date.now();
+    const timestamp = new Date(startedAt).toISOString();
+    let usage: LlmUsage | undefined;
+    let cost: LlmCost | undefined;
+
+    if (!this.streamManager.addStream(stream)) {
+      new Notice("Scholia: Too many concurrent streams. Please wait.");
+      return;
+    }
+
+    stream.replaceCalloutResponse({
+      startOffset: parsed.startOffset,
+      endOffset: parsed.endOffset,
+      responseStartOffset: parsed.responseStartOffset,
+      responseEndOffset: parsed.responseEndOffset ?? parsed.endOffset,
+    });
+    stream.setCalloutType(STREAMING_CALLOUT_TYPE);
+
+    try {
+      await stream.start(llmClient.stream(llmRequest, stream.abort.signal), (event) => {
+        usage = event.usage ?? usage;
+        cost = event.cost ?? cost;
+      });
+      if (this.plugin.settings.showRunMetadata) {
+        await stream.writeChunk(
+          formatCalloutMetadata(
+            buildRunMetadata(llmRequest, {
+              id: streamId,
+              timestamp,
+              contextScope: config.contextScope,
+              templateName: snapshot.templateName,
+              durationMs: Date.now() - startedAt,
+              usage,
+              cost,
+            }),
+          ),
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Stream failed";
+      await this.writeStreamError(stream, msg);
+      new Notice(`Scholia: ${msg}`);
+    } finally {
+      stream.setCalloutType(snapshot.calloutType);
+      this.streamManager.removeStream(streamId);
     }
   }
 

@@ -127,7 +127,7 @@ How to implement:
   - `test/unit/callout.test.ts`: skeleton includes a question for custom-probe runs and omits it otherwise.
   - `test/unit/registry.test.ts` or modal-related tests: custom probe passes the query into inline generation.
 
-### - [ ] Scholia: add regenerate option
+### - [x] Scholia: add regenerate option
 
 Add a button that regenerates the content.
 

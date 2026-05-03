@@ -85,3 +85,11 @@
   --callout-icon: lucide-help-circle;
   --callout-bg: rgba(145, 125, 165, 0.15);
 }
+.scholia-regenerate-button {
+  float: right;
+  margin: 0 0 0.5rem 0.5rem;
+  padding: 2px 8px;
+  font-size: var(--font-ui-smaller);
+  line-height: 1.6;
+  cursor: pointer;
+}

@@ -477,6 +477,7 @@ describe("TemplateRegistry", () => {
       const view = { file: { path: "Reading/Note.md" } };
 
       await (registry as any).runInline(
+        "Edu-Templates/Clarify.md",
         "Clarify",
         {
           contextScope: "selection",
@@ -538,6 +539,7 @@ describe("TemplateRegistry", () => {
       };
 
       await (registry as any).runInline(
+        "Edu-Templates/Clarify.md",
         "Clarify",
         {
           contextScope: "selection",
@@ -604,7 +606,7 @@ describe("TemplateRegistry", () => {
       );
 
       expect(runInline).toHaveBeenCalledOnce();
-      expect(runInline.mock.calls[0][7]).toBe(
+      expect(runInline.mock.calls[0][8]).toBe(
         "Why does this matter?\nUse plain language.",
       );
     });
@@ -661,6 +663,7 @@ describe("TemplateRegistry", () => {
       };
 
       await (registry as any).runInline(
+        "Edu-Templates/Probe.md",
         "Probe",
         {
           contextScope: "selection",

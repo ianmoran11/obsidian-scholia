@@ -19,6 +19,10 @@ export default class ScholiaPlugin extends Plugin {
     this.streamManager = new StreamManager(this);
 
     this.registry = new TemplateRegistry(this.app, this, this.streamManager);
+    this.registry.registerRegenerateCommand();
+    this.registry.registerRegeneratePostProcessor((processor) => {
+      this.registerMarkdownPostProcessor(processor);
+    });
 
     await this.loadTemplates();
     this.registerTemplateEvents();
