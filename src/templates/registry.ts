@@ -32,6 +32,13 @@ import {
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
 import type { ReasoningEffort } from "./types";
+import { DeepInfraTtsClient } from "../audio/deepinfra";
+import {
+  assertTtsTextWithinLimit,
+  extractTtsTextFromCallout,
+  extractTtsTextFromNote,
+} from "../audio/text";
+import { saveAudioToVault } from "../audio/storage";
 
 interface PluginRef {
   app: App;
@@ -49,6 +56,11 @@ interface PluginRef {
       enableHotReloadOfTemplates: boolean;
       showRunMetadata: boolean;
       chatFollowupsEnabled: boolean;
+      deepInfraApiKey: string;
+      enableAudioGeneration: boolean;
+      ttsModel: string;
+      ttsVoice: string;
+      audioOutputFolder: string;
   };
 }
 
@@ -132,6 +144,16 @@ export class TemplateRegistry {
       name: "Scholia: Regenerate current callout",
       callback: () => {
         this.regenerateActiveCallout();
+      },
+    });
+  }
+
+  registerAudioCommand(): void {
+    this.plugin.addCommand({
+      id: "scholia.generate-audio-current-note-or-callout",
+      name: "Scholia: Generate audio for current note/callout",
+      callback: () => {
+        this.generateAudioForActiveScope();
       },
     });
   }
@@ -678,6 +700,12 @@ export class TemplateRegistry {
     view: MarkdownView,
     position?: { line: number; ch: number },
   ): Promise<void> {
+    const apiKey = this.plugin.settings.openRouterApiKey;
+    if (!apiKey) {
+      new Notice("Scholia: OpenRouter API key not set. Configure in Settings.");
+      return;
+    }
+
     const editor = view.editor;
     const parsed = findScholiaCalloutAt(editor, position);
     if (!parsed?.runSnapshot) {
@@ -809,6 +837,107 @@ export class TemplateRegistry {
     } catch {
       // editor may be unavailable; swallow
     }
+  }
+
+  async generateAudioForActiveScope(): Promise<void> {
+    if (!this.plugin.settings.enableAudioGeneration) {
+      new Notice("Scholia: audio generation is disabled in settings.");
+      return;
+    }
+
+    const apiKey = this.plugin.settings.deepInfraApiKey;
+    if (!apiKey) {
+      new Notice("Scholia: DeepInfra API key not set. Configure in Settings.");
+      return;
+    }
+
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      new Notice("Scholia: No active note editor.");
+      return;
+    }
+
+    const editor = view.editor;
+    const parsed = findScholiaCalloutAt(editor);
+    const text = parsed
+      ? extractTtsTextFromCallout(parsed)
+      : extractTtsTextFromNote(editor.getValue());
+
+    try {
+      assertTtsTextWithinLimit(text);
+      const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
+        text,
+        model: this.plugin.settings.ttsModel,
+        voice: this.plugin.settings.ttsVoice,
+      });
+      const saved = await saveAudioToVault(this.app.vault, {
+        audio: generated.audio,
+        sourceFile: view.file,
+        calloutId: parsed?.runSnapshot?.id,
+        audioOutputFolder: this.plugin.settings.audioOutputFolder,
+        extension: generated.extension,
+      });
+
+      if (parsed) {
+        this.insertOrUpdateCalloutAudio(editor, parsed, saved.path);
+      } else {
+        this.insertOrUpdateNoteAudio(editor, saved.path);
+      }
+
+      new Notice(`Scholia: audio saved to ${saved.path}`);
+    } catch (err) {
+      new Notice(
+        `Scholia: ${err instanceof Error ? err.message : "Audio generation failed"}`,
+      );
+    }
+  }
+
+  private insertOrUpdateCalloutAudio(
+    editor: import("obsidian").Editor,
+    parsed: NonNullable<ReturnType<typeof findScholiaCalloutAt>>,
+    audioPath: string,
+  ): void {
+    const content = editor.getValue();
+    const lines = content.split("\n");
+    const audioLine = `> **Audio:** ![[${audioPath}]]`;
+
+    for (let i = parsed.startLine + 1; i <= parsed.endLine; i++) {
+      if (lines[i]?.replace(/^>\s?/, "").trim().startsWith("**Audio:**")) {
+        editor.replaceRange(
+          audioLine,
+          { line: i, ch: 0 },
+          { line: i, ch: lines[i].length },
+        );
+        return;
+      }
+    }
+
+    editor.replaceRange(`\n${audioLine}`, editor.offsetToPos(parsed.endOffset));
+  }
+
+  private insertOrUpdateNoteAudio(
+    editor: import("obsidian").Editor,
+    audioPath: string,
+  ): void {
+    const content = editor.getValue();
+    const section = "## Scholia Audio";
+    const embed = `![[${audioPath}]]`;
+    const sectionIndex = content.indexOf(section);
+    if (sectionIndex === -1) {
+      const spacer = content.endsWith("\n") ? "\n" : "\n\n";
+      editor.replaceRange(`${spacer}${section}\n\n${embed}\n`, editor.offsetToPos(content.length));
+      return;
+    }
+
+    const afterSection = sectionIndex + section.length;
+    const nextHeading = content.slice(afterSection).search(/\n##\s+/);
+    const sectionEnd =
+      nextHeading === -1 ? content.length : afterSection + nextHeading;
+    editor.replaceRange(
+      `\n\n${embed}`,
+      editor.offsetToPos(afterSection),
+      editor.offsetToPos(sectionEnd),
+    );
   }
 
   private async runAppend(

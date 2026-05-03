@@ -58,3 +58,26 @@ Verification:
 - npm run build passed.
 - Browser Use / Computer Use was used to inspect the rendered chat follow-up evidence page and confirm the follow-up appears inside the same Scholia callout.
 - Screenshot saved at evidence/screenshots/chat-followup-demo.png.
+
+Scholia add audio option task completed on 2026-05-03.
+
+Implemented:
+- Added DeepInfra audio settings for API key, enablement, TTS model, optional voice, and output folder.
+- Added an independent DeepInfra TTS client using the current native endpoint: POST https://api.deepinfra.com/v1/inference/{model_name}.
+- Updated the TTS client after live verification to decode DeepInfra JSON data-URI audio responses as well as binary audio responses.
+- Updated the TTS request body to ask DeepInfra for mp3 output by default.
+- Added note/callout text extraction that strips frontmatter, comments, metadata, and audio embeds before TTS.
+- Added vault binary audio storage under the configured folder with stable note/callout timestamped filenames.
+- Added Scholia: Generate audio for current note/callout command.
+- Callout audio inserts or updates a blockquoted Audio line; whole-note audio inserts or updates a note-level Scholia Audio section.
+- Kept the DeepInfra API key confined to settings and request headers; it is not written to notes, metadata, tests, logs, or progress.
+
+Verification:
+- npm test -- --run passed: 14 test files, 171 tests.
+- npm run build passed.
+- npx tsc --noEmit passed.
+- Computer Use was used to inspect the rendered audio verification page and confirm the command, settings behavior, callout embed, and note-level embed behavior are visible.
+- Screenshot saved at evidence/screenshots/audio-option-demo.png.
+- A live DeepInfra request with neutral verification text produced a WAV file at evidence/screenshots/scholia-audio-verification.wav.
+- A second live DeepInfra request with 500 neutral words produced a 10 MB WAV file at evidence/screenshots/scholia-audio-500-token-verification.wav.
+- A follow-up live DeepInfra request with 500 neutral words and output_format=mp3 produced evidence/screenshots/scholia-audio-500-token-verification.mp3.

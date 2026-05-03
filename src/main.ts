@@ -20,6 +20,7 @@ export default class ScholiaPlugin extends Plugin {
 
     this.registry = new TemplateRegistry(this.app, this, this.streamManager);
     this.registry.registerRegenerateCommand();
+    this.registry.registerAudioCommand();
     this.registry.registerRegeneratePostProcessor((processor) => {
       this.registerMarkdownPostProcessor(processor);
     });

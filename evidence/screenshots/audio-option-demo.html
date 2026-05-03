@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scholia Audio Option Verification</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f6f7f2;
+        color: #23251f;
+      }
+      main {
+        max-width: 880px;
+        margin: 48px auto;
+        padding: 0 24px;
+      }
+      h1 {
+        font-size: 34px;
+        margin: 0 0 18px;
+      }
+      .panel {
+        border: 1px solid #cfd4c5;
+        border-radius: 8px;
+        background: #fffef8;
+        padding: 22px;
+      }
+      .command {
+        font-weight: 700;
+        color: #285f6b;
+      }
+      .callout {
+        border-left: 5px solid #4e7f73;
+        background: #eef6f1;
+        margin-top: 22px;
+        padding: 14px 18px;
+      }
+      code {
+        background: #e7e9df;
+        padding: 2px 5px;
+        border-radius: 4px;
+      }
+      ul {
+        line-height: 1.7;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Scholia Audio Option Added</h1>
+      <section class="panel">
+        <p class="command">Command: Scholia: Generate audio for current note/callout</p>
+        <ul>
+          <li>DeepInfra TTS settings are available, with the API key stored as a password field.</li>
+          <li>Callout scope writes <code>&gt; **Audio:** ![[...wav]]</code> inside the Scholia callout.</li>
+          <li>Whole-note scope writes a normal <code>## Scholia Audio</code> section outside blockquotes.</li>
+          <li>Tests passed: 14 files, 171 tests. Build and TypeScript checks passed.</li>
+        </ul>
+        <div class="callout">
+          <strong>Example callout result</strong>
+          <p><strong>Response:</strong> Audio reads generated response text and follow-ups, with metadata stripped.</p>
+          <p><strong>Audio:</strong> ![[_System/Scholia Audio/My Note/scholia-20260503-202914.wav]]</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

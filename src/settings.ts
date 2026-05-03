@@ -24,6 +24,11 @@ export interface ScholiaSettings {
   enableHotReloadOfTemplates: boolean;
   showRunMetadata: boolean;
   chatFollowupsEnabled: boolean;
+  deepInfraApiKey: string;
+  enableAudioGeneration: boolean;
+  ttsModel: string;
+  ttsVoice: string;
+  audioOutputFolder: string;
 }
 
 export const DEFAULT_SETTINGS: ScholiaSettings = {
@@ -40,6 +45,11 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   enableHotReloadOfTemplates: true,
   showRunMetadata: true,
   chatFollowupsEnabled: true,
+  deepInfraApiKey: "",
+  enableAudioGeneration: false,
+  ttsModel: "hexgrad/Kokoro-82M",
+  ttsVoice: "",
+  audioOutputFolder: "_System/Scholia Audio",
 };
 
 class FolderSuggest extends AbstractInputSuggest<TFolder> {
@@ -262,6 +272,72 @@ export class ScholiaSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Enable audio generation")
+      .setDesc("Allow Scholia to create TTS audio with DeepInfra")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.enableAudioGeneration)
+          .onChange(async (value) => {
+            this.plugin.settings.enableAudioGeneration = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("DeepInfra API Key")
+      .setDesc("API key for DeepInfra text-to-speech")
+      .addText((text) => {
+        text.inputEl.type = "password";
+        text
+          .setValue(this.plugin.settings.deepInfraApiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.deepInfraApiKey = value;
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("TTS Model")
+      .setDesc("DeepInfra TTS model slug")
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.ttsModel)
+          .onChange(async (value) => {
+            this.plugin.settings.ttsModel = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("TTS Voice")
+      .setDesc("Optional model-specific voice id")
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.ttsVoice)
+          .onChange(async (value) => {
+            this.plugin.settings.ttsVoice = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Audio Output Folder")
+      .setDesc("Folder where Scholia writes generated audio")
+      .addText((text) => {
+        text.setValue(this.plugin.settings.audioOutputFolder);
+        text.inputEl.placeholder = "_System/Scholia Audio";
+        new FolderSuggest(this.plugin.app, text.inputEl, (folder) => {
+          text.setValue(folder.path);
+          this.plugin.settings.audioOutputFolder = folder.path;
+          this.plugin.saveSettings();
+        });
+        text.onChange(async (value) => {
+          this.plugin.settings.audioOutputFolder = value;
+          await this.plugin.saveSettings();
+        });
+      });
 
     new Setting(containerEl)
       .setName("Debug logging")
