@@ -84,6 +84,7 @@ describe("TemplateRegistry", () => {
       centralCaptureFile: "_System/Central-Flashcards.md",
       enableHotReloadOfTemplates: true,
       showRunMetadata: true,
+      chatFollowupsEnabled: true,
       ...overrides,
     },
   });
@@ -611,6 +612,115 @@ describe("TemplateRegistry", () => {
       expect(runInline.mock.calls[0][8]).toBe(
         "Why does this matter?\nUse plain language.",
       );
+    });
+
+    it("uses the pre-modal selection to trigger chat follow-ups on mobile", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      let modalOpened = false;
+      const skeleton = buildSkeleton({
+        calloutType: "ai",
+        calloutLabel: "Probe",
+        folded: true,
+        commandName: "Probe",
+        selectionText: "Original context",
+        runSnapshot: {
+          id: "scholia-test",
+          schemaVersion: 1,
+          templatePath: "Edu-Templates/Probe.md",
+          templateName: "Probe",
+          sourcePath: "Reading/Note.md",
+          contextScope: "full-note",
+          model: "test-model",
+          temperature: 0.7,
+          maxTokens: 1024,
+          reasoningEnabled: true,
+          reasoningEffort: "medium",
+          calloutType: "ai",
+          calloutLabel: "Probe",
+          calloutFolded: true,
+          outputDestination: "inline",
+          createdAt: "2026-05-03T00:00:00.000Z",
+        },
+      });
+      const editor = {
+        value: `# Note${skeleton}Old answer\n\nAfter`,
+        getSelection(this: { value: string }) {
+          return modalOpened ? "" : "Old answer";
+        },
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        getCursor(this: { value: string }, name?: string) {
+          const selectedStart = this.value.indexOf("Old answer");
+          const selectedEnd = selectedStart + "Old answer".length;
+          if (!modalOpened && name === "from") {
+            return this.offsetToPos(selectedStart);
+          }
+          if (!modalOpened && name === "to") return this.offsetToPos(selectedEnd);
+          return this.offsetToPos(this.value.indexOf("After"));
+        },
+        getLine(this: { value: string }, line: number) {
+          return this.value.split("\n")[line] ?? "";
+        },
+        posToOffset(
+          this: { value: string },
+          pos: { line: number; ch: number },
+        ) {
+          const lines = this.value.split("\n");
+          let offset = 0;
+          for (let i = 0; i < pos.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + pos.ch;
+        },
+        offsetToPos(this: { value: string }, offset: number) {
+          const lines = this.value.slice(0, offset).split("\n");
+          return { line: lines.length - 1, ch: lines[lines.length - 1].length };
+        },
+        replaceRange: vi.fn(),
+      };
+      const view = { file: { path: "Reading/Note.md" }, editor };
+      app.workspace.getActiveViewOfType = vi.fn(() => view);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app, { openRouterApiKey: "test-key" }),
+        mockStreamManager as any,
+      );
+      const runChatFollowup = vi
+        .spyOn(registry as any, "runChatFollowup")
+        .mockResolvedValue(undefined);
+      const runInline = vi
+        .spyOn(registry as any, "runInline")
+        .mockResolvedValue(undefined);
+      vi.spyOn(CustomProbeModal.prototype, "openAndWait").mockImplementation(
+        async () => {
+          modalOpened = true;
+          return {
+            query: "Can you explain this in more detail?",
+            scope: "full-note",
+            alsoAppendToCentral: false,
+            reasoningEnabled: true,
+            reasoningEffort: "medium",
+            tokenBudget: 1024,
+          };
+        },
+      );
+
+      await (registry as any).runTemplateCommand(
+        "Edu-Templates/Probe.md",
+        {
+          contextScope: "full-note",
+          outputDestination: "inline",
+          customProbe: true,
+          requiresSelection: false,
+          systemPrompt: "prompt",
+        },
+        "Probe",
+      );
+
+      expect(runChatFollowup).toHaveBeenCalledOnce();
+      expect(runInline).not.toHaveBeenCalled();
     });
 
     it("renders the custom probe query in the inserted inline skeleton", async () => {

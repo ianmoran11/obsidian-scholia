@@ -70,6 +70,56 @@ export function stripCalloutForChat(body: string): string {
     .trim();
 }
 
+function getCursorSafely(
+  editor: Editor,
+  name: "head" | "anchor" | "from" | "to",
+): EditorPosition | undefined {
+  try {
+    return editor.getCursor(name);
+  } catch {
+    return undefined;
+  }
+}
+
+function comparePositions(a: EditorPosition, b: EditorPosition): number {
+  if (a.line !== b.line) return a.line - b.line;
+  return a.ch - b.ch;
+}
+
+export function findScholiaCalloutAtCursorOrSelection(
+  editor: Editor,
+): ParsedScholiaCallout | null {
+  const positions = [
+    getCursorSafely(editor, "head"),
+    getCursorSafely(editor, "anchor"),
+    getCursorSafely(editor, "from"),
+    getCursorSafely(editor, "to"),
+  ].filter((pos): pos is EditorPosition => !!pos);
+
+  for (const position of positions) {
+    const parsed = findScholiaCalloutAt(editor, position);
+    if (parsed) return parsed;
+  }
+
+  if (!editor.getSelection()) return null;
+
+  const from = getCursorSafely(editor, "from");
+  const to = getCursorSafely(editor, "to");
+  if (!from || !to) return null;
+
+  const start = comparePositions(from, to) <= 0 ? from : to;
+  const end = comparePositions(from, to) <= 0 ? to : from;
+  const endLine =
+    end.ch === 0 && end.line > start.line ? end.line - 1 : end.line;
+
+  for (let line = start.line; line <= endLine; line++) {
+    const parsed = findScholiaCalloutAt(editor, { line, ch: 0 });
+    if (parsed) return parsed;
+  }
+
+  return null;
+}
+
 export function findScholiaCalloutAt(
   editor: Editor,
   position?: EditorPosition,

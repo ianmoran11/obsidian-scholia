@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSkeleton } from "../../src/stream/callout";
 import {
+  findScholiaCalloutAtCursorOrSelection,
   findScholiaCalloutAt,
   stripCalloutForChat,
 } from "../../src/stream/calloutParser";
@@ -62,6 +63,57 @@ describe("findScholiaCalloutAt", () => {
     editor.setValue("> A quoted passage\n> with two lines");
 
     expect(findScholiaCalloutAt(editor, { line: 1, ch: 2 })).toBeNull();
+  });
+
+  it("finds a generated callout from a selection even when head is outside", () => {
+    const skeleton = buildSkeleton({
+      calloutType: "ai",
+      calloutLabel: "Probe",
+      folded: true,
+      commandName: "Probe",
+      selectionText: "Context",
+      runSnapshot: {
+        id: "scholia-test",
+        schemaVersion: 1,
+        templatePath: "Edu-Templates/Probe.md",
+        templateName: "Probe",
+        sourcePath: "Reading/Note.md",
+        contextScope: "heading",
+        model: "test-model",
+        temperature: 0.7,
+        maxTokens: 1024,
+        reasoningEnabled: true,
+        reasoningEffort: "medium",
+        calloutType: "ai",
+        calloutLabel: "Probe",
+        calloutFolded: true,
+        outputDestination: "inline",
+        createdAt: "2026-05-03T00:00:00.000Z",
+      },
+    });
+    const editor = new Editor();
+    editor.setValue(`# Note${skeleton}Old answer\n\nAfter`);
+    const selectionStart = editor.offsetToPos(
+      editor.getValue().indexOf("Old answer"),
+    );
+    const selectionEnd = editor.offsetToPos(
+      editor.getValue().indexOf("Old answer") + "Old answer".length,
+    );
+    const outside = editor.offsetToPos(editor.getValue().indexOf("After"));
+    const selectionEditor = Object.assign(editor, {
+      getSelection: () => "Old answer",
+      getCursor: (name?: string) => {
+        if (name === "from") return selectionStart;
+        if (name === "to") return selectionEnd;
+        return outside;
+      },
+    });
+
+    const parsed = findScholiaCalloutAtCursorOrSelection(
+      selectionEditor as never,
+    );
+
+    expect(parsed?.runSnapshot?.id).toBe("scholia-test");
   });
 });
 

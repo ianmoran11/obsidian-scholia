@@ -26,6 +26,7 @@ import {
   STREAMING_CALLOUT_TYPE,
 } from "../stream/callout";
 import {
+  findScholiaCalloutAtCursorOrSelection,
   findScholiaCalloutAt,
   stripCalloutForChat,
 } from "../stream/calloutParser";
@@ -295,6 +296,8 @@ export class TemplateRegistry {
     }
 
     const editor = view.editor;
+    const initialSelection = editor.getSelection();
+    const initialChatCallout = findScholiaCalloutAtCursorOrSelection(editor);
     let effectiveScope = config.contextScope;
     let systemPrompt = config.systemPrompt;
     const effectiveConfig: TemplateConfig = { ...config };
@@ -330,7 +333,7 @@ export class TemplateRegistry {
       }
     }
 
-    const selection = editor.getSelection();
+    const selection = editor.getSelection() || initialSelection;
 
     if (effectiveConfig.requiresSelection && !selection) {
       new Notice("Scholia: Select text first.");
@@ -342,7 +345,10 @@ export class TemplateRegistry {
       return;
     }
 
-    const contextText = extractContext(this.app, editor, view, effectiveScope);
+    const contextText =
+      effectiveScope === "selection" && selection
+        ? selection
+        : extractContext(this.app, editor, view, effectiveScope);
 
     const model = effectiveConfig.model ?? this.plugin.settings.defaultModel;
     const temperature =
@@ -372,7 +378,8 @@ export class TemplateRegistry {
         effectiveConfig.customProbe &&
         this.plugin.settings.chatFollowupsEnabled
       ) {
-        const parsed = findScholiaCalloutAt(editor);
+        const parsed =
+          initialChatCallout ?? findScholiaCalloutAtCursorOrSelection(editor);
         if (parsed?.runSnapshot) {
           await this.runChatFollowup(
             templateName,
