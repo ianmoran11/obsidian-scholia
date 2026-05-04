@@ -219,6 +219,11 @@ export function parseFrontmatter(
 
   if (typeof raw.spaced_repetition === "boolean") {
     config.spacedRepetition = raw.spaced_repetition;
+  } else if (
+    config.calloutType === "scholia-flashcard" ||
+    /(?:^|\/)flashcards?\.md$/i.test(filePath)
+  ) {
+    config.spacedRepetition = true;
   }
 
   if (

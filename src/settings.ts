@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   enableHotReloadOfTemplates: true,
   showRunMetadata: true,
   chatFollowupsEnabled: true,
-  spacedRepetitionIntegrationEnabled: false,
+  spacedRepetitionIntegrationEnabled: true,
   deepInfraApiKey: "",
   enableAudioGeneration: false,
   ttsModel: "hexgrad/Kokoro-82M",

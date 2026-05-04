@@ -602,6 +602,14 @@ export class TemplateRegistry {
             accumulatedContent,
           );
         }
+        if (!stream.isAborted && config.spacedRepetition) {
+          this.insertSrCardAfterInlineCallout(
+            editor,
+            stream.skeletonStart,
+            accumulatedContent,
+            config,
+          );
+        }
         cleanup();
       }
     } else {
@@ -647,7 +655,12 @@ export class TemplateRegistry {
           );
         }
         if (!stream.isAborted && config.spacedRepetition) {
-          this.insertSrCardAfterInlineCallout(editor, stream.writeOffset, accumulatedContent, config);
+          this.insertSrCardAfterInlineCallout(
+            editor,
+            stream.skeletonStart,
+            accumulatedContent,
+            config,
+          );
         }
         cleanup();
       }
@@ -656,12 +669,17 @@ export class TemplateRegistry {
 
   private insertSrCardAfterInlineCallout(
     editor: import("obsidian").Editor,
-    offset: number,
+    calloutStartOffset: number,
     content: string,
     config: TemplateConfig,
   ): void {
     const formatted = this.formatSpacedRepetitionContent(content, config);
     if (!formatted) return;
+    const parsed = findScholiaCalloutAt(
+      editor,
+      editor.offsetToPos(calloutStartOffset + 1),
+    );
+    const offset = parsed?.endOffset ?? calloutStartOffset;
     const card = `\n\n<!-- scholia:sr-card -->\n${formatted}\n`;
     editor.replaceRange(card, editor.offsetToPos(offset));
   }

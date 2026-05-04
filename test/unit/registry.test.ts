@@ -760,6 +760,104 @@ describe("TemplateRegistry", () => {
       expect(generateAudio.mock.calls[0][4]).toBe("Detailed spoken answer.");
     });
 
+    it("adds an SR-compatible card to the current note when inline flashcards also capture centrally", async () => {
+      const files = new Map<string, MockFile>();
+      const app = createMockApp(files);
+      const capturedFiles = new Map<string, { path: string; content: string; stat: { mtime: number } }>();
+      app.vault.getFolderByPath = ((path: string) =>
+        path === "Edu-Templates" || path === "_System" ? { path } : null) as any;
+      app.vault.createFolder = vi.fn(async () => undefined) as any;
+      app.vault.create = vi.fn(async (path: string, content: string) => {
+        const file = { path, content, stat: { mtime: Date.now() } };
+        capturedFiles.set(path, file);
+        return file;
+      }) as any;
+      app.vault.modify = vi.fn(async (file: { content: string }, content: string) => {
+        file.content = content;
+      }) as any;
+      app.vault.read = vi.fn(async (file: { content?: string }) => file.content ?? "") as any;
+      app.vault.getFileByPath = ((path: string) =>
+        capturedFiles.get(path) ?? null) as any;
+      const editor = {
+        value: "Selected text",
+        getCursor: () => ({ line: 0, ch: "Selected text".length }),
+        getLine: () => "Selected text",
+        replaceRange(
+          this: { value: string },
+          text: string,
+          start: { line: number; ch: number },
+          end?: { line: number; ch: number },
+        ) {
+          const startOffset = this.posToOffset(start);
+          const endOffset = end ? this.posToOffset(end) : startOffset;
+          this.value =
+            this.value.slice(0, startOffset) +
+            text +
+            this.value.slice(endOffset);
+        },
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        posToOffset(
+          this: { value: string },
+          pos: { line: number; ch: number },
+        ) {
+          const lines = this.value.split("\n");
+          let offset = 0;
+          for (let i = 0; i < pos.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + pos.ch;
+        },
+        offsetToPos(this: { value: string }, offset: number) {
+          const lines = this.value.slice(0, offset).split("\n");
+          return { line: lines.length - 1, ch: lines[lines.length - 1].length };
+        },
+      };
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app, { showRunMetadata: false }),
+        mockStreamManager as any,
+      );
+      const llmClient = {
+        stream: async function* () {
+          yield {
+            type: "content",
+            text: "Q: What does the sum represent?\nA: The constructor choices.",
+          };
+        },
+      };
+
+      await (registry as any).runInline(
+        "Edu-Templates/Flashcard.md",
+        "Flashcard",
+        {
+          contextScope: "selection",
+          outputDestination: "inline",
+          calloutType: "scholia-flashcard",
+          calloutLabel: "Flashcard",
+          alsoAppendTo: "_System/Central-Flashcards.md",
+          appendFormat: "markdown",
+          spacedRepetition: true,
+          srFormat: "basic",
+          srDeck: "#flashcards/scholia",
+          systemPrompt: "prompt",
+        },
+        { file: { path: "Reading/Note.md" } },
+        editor,
+        "Selected text",
+        llmClient as any,
+        {} as any,
+      );
+
+      expect(editor.getValue()).toContain("[!scholia-flashcard]-");
+      expect(editor.getValue()).toContain("Q: What does the sum represent?");
+      expect(editor.getValue()).toContain("<!-- scholia:sr-card -->");
+      expect(editor.getValue()).toContain(
+        "#flashcards/scholia\nWhat does the sum represent?::The constructor choices.",
+      );
+    });
+
     it("appends chat follow-ups inside an existing generated callout", async () => {
       const files = new Map<string, MockFile>();
       const app = createMockApp(files);

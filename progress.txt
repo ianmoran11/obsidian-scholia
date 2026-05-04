@@ -100,6 +100,20 @@ Verification:
 - Computer Use was used to inspect the rendered evidence page showing readable Scholia output beside SR-compatible markdown.
 - Screenshot saved at evidence/screenshots/spaced-repetition-demo.png.
 
+Scholia Spaced Repetition visibility fix completed on 2026-05-04.
+
+Implemented:
+- Diagnosed the mobile recording: the note showed only a readable Scholia callout with Q:/A: text, which the Spaced Repetition plugin does not treat as a basic card.
+- Fixed inline flashcards that also capture centrally so they append a separate SR-compatible card after the callout in the current note.
+- Changed the SR card insertion point to re-detect the finished callout, so metadata or audio lines do not cause the card to be inserted inside the callout.
+- Enabled SR integration by default and auto-enabled it for legacy scholia-flashcard templates that do not yet have spaced_repetition frontmatter.
+- Preserved explicit spaced_repetition: false as an opt-out.
+
+Verification:
+- npm test -- --run passed: 15 test files, 185 tests.
+- npx tsc --noEmit passed.
+- npm run build passed.
+
 Scholia audio-friendly detail template task completed on 2026-05-04.
 
 Implemented:

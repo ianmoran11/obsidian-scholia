@@ -279,6 +279,38 @@ describe("frontmatter.parseFrontmatter", () => {
     expect(result.config.srTags).toEqual(["#exam", "ai-generated"]);
   });
 
+  it("enables spaced repetition for legacy scholia flashcard templates", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      callout_type: "scholia-flashcard",
+    };
+    const result = parseFrontmatter(
+      frontmatter,
+      "Prompt",
+      "Edu-Templates/Flashcard.md",
+      "ai",
+    );
+    expect(result.config.spacedRepetition).toBe(true);
+    expect(result.config.srFormat).toBe("basic");
+  });
+
+  it("allows flashcard templates to opt out of spaced repetition", () => {
+    const frontmatter: RawTemplateFrontmatter = {
+      context_scope: "selection",
+      output_destination: "inline",
+      callout_type: "scholia-flashcard",
+      spaced_repetition: false,
+    };
+    const result = parseFrontmatter(
+      frontmatter,
+      "Prompt",
+      "Edu-Templates/Flashcard.md",
+      "ai",
+    );
+    expect(result.config.spacedRepetition).toBe(false);
+  });
+
   it("parses generate_audio boolean", () => {
     const frontmatter: RawTemplateFrontmatter = {
       context_scope: "heading",
