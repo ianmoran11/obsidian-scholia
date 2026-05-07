@@ -30,6 +30,7 @@ export interface ScholiaSettings {
   ttsModel: string;
   ttsVoice: string;
   audioOutputFolder: string;
+  ttsCharacterLimit: number;
 }
 
 export const DEFAULT_SETTINGS: ScholiaSettings = {
@@ -52,6 +53,7 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   ttsModel: "hexgrad/Kokoro-82M",
   ttsVoice: "",
   audioOutputFolder: "_System/Scholia Audio",
+  ttsCharacterLimit: 12000,
 };
 
 class FolderSuggest extends AbstractInputSuggest<TFolder> {
@@ -351,6 +353,23 @@ export class ScholiaSettingTab extends PluginSettingTab {
           this.plugin.settings.audioOutputFolder = value;
           await this.plugin.saveSettings();
         });
+      });
+
+    new Setting(containerEl)
+      .setName("TTS Character Limit")
+      .setDesc("Maximum characters sent to TTS in a single request (1000–50000)")
+      .addText((text) => {
+        text.inputEl.type = "number";
+        text
+          .setValue(String(this.plugin.settings.ttsCharacterLimit))
+          .onChange(async (value) => {
+            const num = Math.min(
+              50000,
+              Math.max(1000, parseInt(value) || DEFAULT_SETTINGS.ttsCharacterLimit),
+            );
+            this.plugin.settings.ttsCharacterLimit = num;
+            await this.plugin.saveSettings();
+          });
       });
 
     new Setting(containerEl)

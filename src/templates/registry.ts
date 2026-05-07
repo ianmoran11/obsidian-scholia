@@ -64,6 +64,7 @@ interface PluginRef {
       ttsModel: string;
       ttsVoice: string;
       audioOutputFolder: string;
+      ttsCharacterLimit: number;
   };
 }
 
@@ -932,7 +933,7 @@ export class TemplateRegistry {
     }
 
     try {
-      assertTtsTextWithinLimit(text);
+      assertTtsTextWithinLimit(text, this.plugin.settings.ttsCharacterLimit);
       const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
         text,
         model: this.plugin.settings.ttsModel,
@@ -993,7 +994,7 @@ export class TemplateRegistry {
       : extractTtsTextFromNote(editor.getValue());
 
     try {
-      assertTtsTextWithinLimit(text);
+      assertTtsTextWithinLimit(text, this.plugin.settings.ttsCharacterLimit);
       const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
         text,
         model: this.plugin.settings.ttsModel,

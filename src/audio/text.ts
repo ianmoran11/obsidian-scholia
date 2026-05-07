@@ -50,14 +50,17 @@ export function extractTtsTextFromNote(note: string): string {
   return stripMarkdownNoise(note);
 }
 
-export function assertTtsTextWithinLimit(text: string): void {
+export function assertTtsTextWithinLimit(
+  text: string,
+  characterLimit: number = MAX_TTS_CHARACTERS,
+): void {
   if (!text.trim()) {
     throw new Error("No readable text found for audio generation.");
   }
 
-  if (text.length > MAX_TTS_CHARACTERS) {
+  if (text.length > characterLimit) {
     throw new Error(
-      `Audio text is too long (${text.length} characters). Limit is ${MAX_TTS_CHARACTERS}.`,
+      `Audio text is too long (${text.length} characters). Limit is ${characterLimit}.`,
     );
   }
 }
