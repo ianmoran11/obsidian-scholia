@@ -162,6 +162,16 @@ export class TemplateRegistry {
     });
   }
 
+  registerNoteAudioCommand(): void {
+    this.plugin.addCommand({
+      id: "scholia.generate-audio-entire-note",
+      name: "Scholia: Generate TTS audio for entire note",
+      callback: () => {
+        this.generateAudioForEntireNote();
+      },
+    });
+  }
+
   registerRegeneratePostProcessor(
     register: (processor: (el: HTMLElement, ctx: unknown) => void) => void,
   ): void {
@@ -965,6 +975,45 @@ export class TemplateRegistry {
     } catch (err) {
       new Notice(
         `Scholia audio: ${err instanceof Error ? err.message : "Audio generation failed"}`,
+      );
+    }
+  }
+
+  async generateAudioForEntireNote(): Promise<void> {
+    const apiKey = this.plugin.settings.deepInfraApiKey;
+    if (!apiKey) {
+      new Notice("Scholia: DeepInfra API key not set. Configure in Settings.");
+      return;
+    }
+
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      new Notice("Scholia: No active note editor.");
+      return;
+    }
+
+    const editor = view.editor;
+    const text = extractTtsTextFromNote(editor.getValue());
+
+    try {
+      assertTtsTextWithinLimit(text, this.plugin.settings.ttsCharacterLimit);
+      new Notice("Scholia: Generating audio…");
+      const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
+        text,
+        model: this.plugin.settings.ttsModel,
+        voice: this.plugin.settings.ttsVoice,
+      });
+      const saved = await saveAudioToVault(this.app.vault, {
+        audio: generated.audio,
+        sourceFile: view.file,
+        audioOutputFolder: this.plugin.settings.audioOutputFolder,
+        extension: generated.extension,
+      });
+      this.insertOrUpdateNoteAudio(editor, saved.path);
+      new Notice(`Scholia: audio saved to ${saved.path}`);
+    } catch (err) {
+      new Notice(
+        `Scholia: ${err instanceof Error ? err.message : "Audio generation failed"}`,
       );
     }
   }

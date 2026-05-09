@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - "*"
+    branches:
+      - main
+    paths:
+      - "manifest.json"
 
 jobs:
   build:
@@ -14,19 +18,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get version from manifest
+        id: version
+        run: echo "version=$(node -p \"require('./manifest.json').version\")" >> $GITHUB_OUTPUT
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build plugin
         run: npm run build
 
+      - name: Create tag (branch push)
+        if: github.ref_type == 'branch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag v${{ steps.version.outputs.version }}
+          git push origin v${{ steps.version.outputs.version }}
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.version.outputs.version }}
           files: |
             main.js
             manifest.json
