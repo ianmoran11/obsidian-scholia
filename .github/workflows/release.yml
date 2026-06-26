@@ -20,7 +20,9 @@ jobs:
 
       - name: Get version from manifest
         id: version
-        run: echo "version=$(node -p \"require('./manifest.json').version\")" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
