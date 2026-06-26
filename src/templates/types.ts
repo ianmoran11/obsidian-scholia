@@ -2,6 +2,7 @@ import type { Hotkey } from "obsidian";
 
 export type ContextScope = "selection" | "heading" | "full-note";
 export type OutputDestination = "inline" | string;
+export type OutputMode = "callout" | "section" | "in-place";
 export type AppendFormat = "markdown" | "json-line";
 export type ReasoningEffort =
   | "none"

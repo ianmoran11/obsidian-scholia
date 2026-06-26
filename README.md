@@ -28,15 +28,15 @@ Open **Settings → Scholia** to configure:
 | Default Token Budget     | Maximum output token budget           | `30000`                         |
 | Default Reasoning        | Enable reasoning for runs by default  | `true`                          |
 | Default Reasoning Effort | Reasoning strength when enabled       | `medium`                        |
-| Templates Folder         | Where your templates live             | `Edu-Templates`                 |
-| Central Capture File     | Default capture destination           | `_System/Central-Flashcards.md` |
+| Templates Folder         | Where your templates live             | `scholia/templates`             |
+| Central Capture File     | Default capture destination           | `scholia/flashcards.md` |
 | Default Callout Type     | Visual style for responses            | `ai`                            |
 | Hot-reload templates     | Update commands when templates change | `true`                          |
 | Debug logging            | Log to developer console              | `false`                         |
 
 ## Writing a Template
 
-Templates live in your `Edu-Templates` folder (or whatever you configured). Each template is a markdown file with YAML frontmatter:
+Templates live in your `scholia/templates` folder (or whatever you configured). Each template is a markdown file with YAML frontmatter:
 
 ```yaml
 ---
@@ -61,7 +61,7 @@ requires_selection: true
 command_prefix: "Run"
 
 # Capture to central file (optional)
-also_append_to: "_System/Central-Flashcards.md"
+also_append_to: "scholia/flashcards.md"
 append_format: markdown # markdown | json-line
 ---
 Your system prompt goes here. The user's selected text (or heading/section) becomes the user message.
@@ -92,7 +92,7 @@ output_destination: inline
 callout_type: scholia-flashcard
 callout_label: "Flashcard"
 callout_folded: true
-also_append_to: "_System/Central-Flashcards.md"
+also_append_to: "scholia/flashcards.md"
 append_format: markdown
 ---
 Convert the selection into one Anki-style flashcard. Output exactly:
@@ -185,7 +185,7 @@ The plugin uses OpenRouter for LLM access. Your API key is stored locally in Obs
 
 1. Disable the plugin in Settings → Community Plugins
 2. Remove the plugin folder: `<vault>/.obsidian/plugins/scholia/`
-3. Templates in `Edu-Templates/` are just regular markdown files — delete them if you no longer need them
+3. Templates in `scholia/templates/` are just regular markdown files — delete them if you no longer need them
 
 ## Troubleshooting
 

@@ -16,7 +16,7 @@ import { StreamManager } from "../stream/manager";
 import { OpenRouterClient } from "../llm/openrouter";
 import { LlmCost, LlmRequest, LlmUsage } from "../llm/client";
 import { buildRunMetadata } from "../llm/metadata";
-import { extractContext } from "../context/extractor";
+import { extractContext, resolveScopeRange } from "../context/extractor";
 import { appendToVault } from "../storage/appendFile";
 import {
   formatCalloutMetadata,
@@ -385,6 +385,31 @@ export class TemplateRegistry {
     };
 
     if (effectiveConfig.outputDestination === "inline") {
+      if (result.outputMode === "section") {
+        await this.runSection(
+          templateName,
+          effectiveConfig,
+          view,
+          editor,
+          result.sectionLevel,
+          llmClient,
+          llmRequest,
+        );
+        return;
+      }
+
+      if (result.outputMode === "in-place") {
+        await this.runInPlace(
+          effectiveConfig,
+          view,
+          editor,
+          effectiveScope,
+          llmClient,
+          llmRequest,
+        );
+        return;
+      }
+
       if (
         effectiveConfig.customProbe &&
         this.plugin.settings.chatFollowupsEnabled
@@ -682,6 +707,144 @@ export class TemplateRegistry {
         }
         cleanup();
       }
+    }
+  }
+
+  private async runSection(
+    templateName: string,
+    config: TemplateConfig,
+    view: MarkdownView,
+    editor: import("obsidian").Editor,
+    sectionLevel: number,
+    llmClient: OpenRouterClient,
+    llmRequest: LlmRequest,
+  ): Promise<void> {
+    const selectionEnd = editor.getCursor("to");
+    const posAfterSelection = {
+      line: selectionEnd.line,
+      ch: editor.getLine(selectionEnd.line).length,
+    };
+    const insertOffset = editor.posToOffset(posAfterSelection);
+
+    const streamId = `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const stream = new Stream(streamId, view.file?.path ?? "", editor, view);
+    const startedAt = Date.now();
+    const timestamp = new Date(startedAt).toISOString();
+    let usage: LlmUsage | undefined;
+    let cost: LlmCost | undefined;
+
+    if (!this.streamManager.addStream(stream)) {
+      new Notice("Scholia: Too many concurrent streams. Please wait.");
+      return;
+    }
+
+    const level = Math.min(6, Math.max(1, sectionLevel));
+    const heading = `${"#".repeat(level)} ${config.calloutLabel ?? templateName}`;
+    stream.setupPlainRegion({
+      startOffset: insertOffset,
+      endOffset: insertOffset,
+      initialText: `\n\n${heading}\n\n`,
+    });
+
+    try {
+      await stream.start(
+        llmClient.stream(llmRequest, stream.abort.signal),
+        (event) => {
+          usage = event.usage ?? usage;
+          cost = event.cost ?? cost;
+        },
+      );
+      if (this.plugin.settings.showRunMetadata) {
+        await stream.writeChunk(
+          formatCalloutMetadata(
+            buildRunMetadata(llmRequest, {
+              id: streamId,
+              timestamp,
+              contextScope: config.contextScope,
+              templateName,
+              durationMs: Date.now() - startedAt,
+              usage,
+              cost,
+            }),
+          ),
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Stream failed";
+      await this.writePlainError(stream, msg);
+      new Notice(`Scholia: ${msg}`);
+    } finally {
+      this.streamManager.removeStream(streamId);
+    }
+  }
+
+  private async runInPlace(
+    config: TemplateConfig,
+    view: MarkdownView,
+    editor: import("obsidian").Editor,
+    scope: TemplateConfig["contextScope"],
+    llmClient: OpenRouterClient,
+    llmRequest: LlmRequest,
+  ): Promise<void> {
+    const range = resolveScopeRange(this.app, editor, view, scope);
+    if (range.endOffset <= range.startOffset) {
+      new Notice("Scholia: Nothing to edit in place for the chosen scope.");
+      return;
+    }
+
+    // Snapshot the region so we can restore it if the stream fails — in-place
+    // edit deletes the original content before streaming the replacement.
+    const originalText = editor
+      .getValue()
+      .slice(range.startOffset, range.endOffset);
+
+    const streamId = `scholia-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const stream = new Stream(streamId, view.file?.path ?? "", editor, view);
+
+    if (!this.streamManager.addStream(stream)) {
+      new Notice("Scholia: Too many concurrent streams. Please wait.");
+      return;
+    }
+
+    stream.setupPlainRegion({
+      startOffset: range.startOffset,
+      endOffset: range.endOffset,
+      initialText: "",
+    });
+
+    try {
+      await stream.start(llmClient.stream(llmRequest, stream.abort.signal));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Stream failed";
+      if (!stream.isAborted) {
+        // Restore the original content that was deleted before streaming.
+        stream.inRangeWriteInProgress = true;
+        try {
+          editor.replaceRange(
+            originalText,
+            editor.offsetToPos(stream.skeletonStart),
+            editor.offsetToPos(stream.writeOffset),
+          );
+        } catch {
+          // editor may be unavailable; swallow
+        } finally {
+          stream.inRangeWriteInProgress = false;
+        }
+      }
+      new Notice(`Scholia: ${msg}`);
+    } finally {
+      this.streamManager.removeStream(streamId);
+    }
+  }
+
+  private async writePlainError(
+    stream: Stream,
+    message: string,
+  ): Promise<void> {
+    try {
+      await stream.writeChunk(`\n\n**Error:** ${message}`);
+    } catch {
+      // editor may be unavailable; swallow
     }
   }
 

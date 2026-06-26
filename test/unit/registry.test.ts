@@ -434,6 +434,8 @@ describe("TemplateRegistry", () => {
         reasoningEnabled: true,
         reasoningEffort: "medium",
         tokenBudget: 1024,
+        outputMode: "callout",
+        sectionLevel: 2,
       });
 
       await (registry as any).runTemplateCommand(
@@ -594,6 +596,8 @@ describe("TemplateRegistry", () => {
         reasoningEnabled: true,
         reasoningEffort: "medium",
         tokenBudget: 1024,
+        outputMode: "callout",
+        sectionLevel: 2,
       });
 
       await (registry as any).runTemplateCommand(
@@ -703,6 +707,8 @@ describe("TemplateRegistry", () => {
             reasoningEnabled: true,
             reasoningEffort: "medium",
             tokenBudget: 1024,
+            outputMode: "callout",
+            sectionLevel: 2,
           };
         },
       );
@@ -1081,6 +1087,157 @@ describe("TemplateRegistry", () => {
       expect(editor.getValue()).toContain("**Follow-up:** Follow-up question?");
       expect(editor.getValue()).toContain("Follow-up answer");
       expect(sentUserMessage).toBe("context and history");
+    });
+  });
+
+  describe("output modes", () => {
+    function makeEditor(initial: string, selection?: { from: number; to: number }) {
+      return {
+        value: initial,
+        getSelection() {
+          return selection
+            ? this.value.slice(selection.from, selection.to)
+            : "";
+        },
+        getCursor(this: { value: string }, which?: string) {
+          if (which === "from" && selection) {
+            return this.offsetToPos(selection.from);
+          }
+          if (which === "to" && selection) {
+            return this.offsetToPos(selection.to);
+          }
+          // default: end of buffer
+          return this.offsetToPos(this.value.length);
+        },
+        getLine(this: { value: string }, line: number) {
+          return this.value.split("\n")[line] ?? "";
+        },
+        replaceRange(
+          this: { value: string },
+          text: string,
+          start: { line: number; ch: number },
+          end?: { line: number; ch: number },
+        ) {
+          const startOffset = this.posToOffset(start);
+          const endOffset = end ? this.posToOffset(end) : startOffset;
+          this.value =
+            this.value.slice(0, startOffset) + text + this.value.slice(endOffset);
+        },
+        getValue(this: { value: string }) {
+          return this.value;
+        },
+        posToOffset(this: { value: string }, pos: { line: number; ch: number }) {
+          const lines = this.value.split("\n");
+          let offset = 0;
+          for (let i = 0; i < pos.line && i < lines.length; i++) {
+            offset += lines[i].length + 1;
+          }
+          return offset + pos.ch;
+        },
+        offsetToPos(this: { value: string }, offset: number) {
+          const lines = this.value.slice(0, offset).split("\n");
+          return { line: lines.length - 1, ch: lines[lines.length - 1].length };
+        },
+      };
+    }
+
+    it("inserts a new section with the chosen header level", async () => {
+      const app = createMockApp(new Map());
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+      const editor = makeEditor("Intro paragraph.");
+      const view = { file: { path: "Reading/Note.md" } };
+      const llmClient = {
+        stream: async function* () {
+          yield { type: "content", text: "Generated body." };
+        },
+      };
+
+      await (registry as any).runSection(
+        "Summary",
+        {
+          contextScope: "selection",
+          outputDestination: "inline",
+          calloutLabel: "AI Summary",
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        3,
+        llmClient as any,
+        {} as any,
+      );
+
+      expect(editor.getValue()).toContain("### AI Summary");
+      expect(editor.getValue()).toContain("Generated body.");
+      // No callout line-prefixing in plain section output.
+      expect(editor.getValue()).not.toContain("> Generated");
+    });
+
+    it("replaces the selected region in place", async () => {
+      const app = createMockApp(new Map());
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+      const editor = makeEditor("Before OLD after", { from: 7, to: 10 });
+      const view = { file: { path: "Reading/Note.md" } };
+      const llmClient = {
+        stream: async function* () {
+          yield { type: "content", text: "NEW" };
+        },
+      };
+
+      await (registry as any).runInPlace(
+        {
+          contextScope: "selection",
+          outputDestination: "inline",
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        "selection",
+        llmClient as any,
+        {} as any,
+      );
+
+      expect(editor.getValue()).toBe("Before NEW after");
+    });
+
+    it("restores the original content if an in-place stream fails", async () => {
+      const app = createMockApp(new Map());
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
+      const editor = makeEditor("Before OLD after", { from: 7, to: 10 });
+      const view = { file: { path: "Reading/Note.md" } };
+      const llmClient = {
+        // eslint-disable-next-line require-yield
+        stream: async function* () {
+          throw new Error("network down");
+        },
+      };
+
+      await (registry as any).runInPlace(
+        {
+          contextScope: "selection",
+          outputDestination: "inline",
+          systemPrompt: "prompt",
+        },
+        view,
+        editor,
+        "selection",
+        llmClient as any,
+        {} as any,
+      );
+
+      expect(editor.getValue()).toBe("Before OLD after");
     });
   });
 });
