@@ -268,6 +268,8 @@ describe("CustomProbeModal", () => {
       reasoningEnabled: false,
       reasoningEffort: "high",
       tokenBudget: 4096,
+      outputMode: "callout",
+      sectionLevel: 2,
     });
   });
 

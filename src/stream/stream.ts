@@ -14,6 +14,8 @@ export class Stream {
   public inRangeWriteInProgress: boolean = false;
   public abort: AbortController;
   public isAborted: boolean = false;
+  /** When true, chunks are written verbatim (no callout "> " line prefixing). */
+  public plain: boolean = false;
 
   private editor: Editor;
   private view: MarkdownView;
@@ -74,10 +76,39 @@ export class Stream {
     }
   }
 
+  /**
+   * Prepare a plain (non-callout) streaming region. Replaces [startOffset,
+   * endOffset) with `initialText`, then positions the write cursor at the end
+   * of that text so subsequent chunks stream verbatim. Use endOffset ===
+   * startOffset to insert without deleting (e.g. a new section).
+   */
+  setupPlainRegion(opts: {
+    startOffset: number;
+    endOffset: number;
+    initialText: string;
+  }): void {
+    this.plain = true;
+    this.inRangeWriteInProgress = true;
+    try {
+      this.editor.replaceRange(
+        opts.initialText,
+        this.editor.offsetToPos(opts.startOffset),
+        this.editor.offsetToPos(opts.endOffset),
+      );
+      this.skeletonStart = opts.startOffset;
+      this.skeletonEnd = opts.startOffset + opts.initialText.length;
+      this.writeOffset = this.skeletonEnd;
+      this.lastKnownContent = this.editor.getValue();
+      this.lastKnownLength = this.lastKnownContent.length;
+    } finally {
+      this.inRangeWriteInProgress = false;
+    }
+  }
+
   async writeChunk(raw: string): Promise<void> {
     this.inRangeWriteInProgress = true;
     try {
-      const prefixed = raw.replace(/\n/g, "\n> ");
+      const prefixed = this.plain ? raw : raw.replace(/\n/g, "\n> ");
       const pos = this.editor.offsetToPos(this.writeOffset);
       this.editor.replaceRange(prefixed, pos);
       this.writeOffset += prefixed.length;

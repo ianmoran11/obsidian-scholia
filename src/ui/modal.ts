@@ -1,6 +1,7 @@
 import { App, Modal } from "obsidian";
 import type {
   ContextScope,
+  OutputMode,
   ReasoningEffort,
   TemplateConfig,
 } from "../templates/types";
@@ -12,6 +13,8 @@ export interface CustomProbeResult {
   reasoningEnabled: boolean;
   reasoningEffort: ReasoningEffort;
   tokenBudget: number;
+  outputMode: OutputMode;
+  sectionLevel: number;
 }
 
 export interface RunModalDefaults {
@@ -27,6 +30,10 @@ export class CustomProbeModal extends Modal {
   private reasoningEnabled: boolean;
   private reasoningEffort: ReasoningEffort;
   private tokenBudget: number;
+  private outputMode: OutputMode = "callout";
+  private sectionLevel: number = 2;
+  /** Output mode only applies to inline templates (not file-append ones). */
+  private readonly outputModeApplies: boolean;
   private errorEl: HTMLElement | null = null;
   private resolvePromise: ((result: CustomProbeResult | null) => void) | null =
     null;
@@ -42,6 +49,7 @@ export class CustomProbeModal extends Modal {
     this.reasoningEnabled = defaults.defaultReasoningEnabled;
     this.reasoningEffort = defaults.defaultReasoningEffort;
     this.tokenBudget = defaults.defaultTokenBudget;
+    this.outputModeApplies = templateConfig.outputDestination === "inline";
   }
 
   async openAndWait(): Promise<CustomProbeResult | null> {
@@ -102,6 +110,10 @@ export class CustomProbeModal extends Modal {
       radio.onclick = () => {
         this.contextScope = s;
       };
+    }
+
+    if (this.outputModeApplies) {
+      this.renderOutputModeControls(formEl);
     }
 
     if (this.templateConfig.customProbe) {
@@ -207,6 +219,65 @@ export class CustomProbeModal extends Modal {
     });
   }
 
+  private renderOutputModeControls(formEl: HTMLElement): void {
+    const modeLabel = formEl.createEl("label", { text: "Output:" });
+    modeLabel.setAttr("for", "output-mode");
+    const modeSelect = formEl.createEl("select");
+    modeSelect.id = "output-mode";
+    const modes: Array<{ value: OutputMode; label: string }> = [
+      { value: "callout", label: "Callout" },
+      { value: "section", label: "New section" },
+      { value: "in-place", label: "Edit in place" },
+    ];
+    for (const m of modes) {
+      const optionEl = modeSelect.createEl("option", {
+        text: m.label,
+        value: m.value,
+      });
+      optionEl.value = m.value;
+    }
+    modeSelect.value = this.outputMode;
+
+    // Header level — only relevant for the "New section" mode.
+    const levelLabel = formEl.createEl("label", { text: "Header level:" });
+    levelLabel.setAttr("for", "section-level");
+    const levelSelect = formEl.createEl("select");
+    levelSelect.id = "section-level";
+    for (let level = 1; level <= 6; level++) {
+      const optionEl = levelSelect.createEl("option", {
+        text: `${"#".repeat(level)} (H${level})`,
+        value: String(level),
+      });
+      optionEl.value = String(level);
+    }
+    levelSelect.value = String(this.sectionLevel);
+
+    // Hint — explains that the context scope above is the region rewritten.
+    const inPlaceHint = formEl.createEl("p", {
+      text: "Edit in place replaces the region chosen under Context scope above.",
+      cls: "output-mode-hint",
+    });
+    inPlaceHint.style.color = "var(--text-muted)";
+    inPlaceHint.style.fontSize = "var(--font-ui-smaller)";
+
+    const syncVisibility = () => {
+      const isSection = this.outputMode === "section";
+      const isInPlace = this.outputMode === "in-place";
+      levelLabel.style.display = isSection ? "" : "none";
+      levelSelect.style.display = isSection ? "" : "none";
+      inPlaceHint.style.display = isInPlace ? "" : "none";
+    };
+    syncVisibility();
+
+    modeSelect.onchange = () => {
+      this.outputMode = modeSelect.value as OutputMode;
+      syncVisibility();
+    };
+    levelSelect.onchange = () => {
+      this.sectionLevel = parseInt(levelSelect.value, 10);
+    };
+  }
+
   private handleSubmit(): void {
     const textarea = this.contentEl.querySelector(
       ".custom-probe-textarea",
@@ -243,6 +314,8 @@ export class CustomProbeModal extends Modal {
       reasoningEnabled: this.reasoningEnabled,
       reasoningEffort: this.reasoningEffort,
       tokenBudget: this.tokenBudget,
+      outputMode: this.outputModeApplies ? this.outputMode : "callout",
+      sectionLevel: this.sectionLevel,
     });
   }
 

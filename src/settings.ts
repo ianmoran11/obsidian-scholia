@@ -40,8 +40,8 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   defaultMaxTokens: 30000,
   defaultReasoningEnabled: true,
   defaultReasoningEffort: "medium",
-  templatesFolder: "Edu-Templates",
-  centralCaptureFile: "_System/Central-Flashcards.md",
+  templatesFolder: "scholia/templates",
+  centralCaptureFile: "scholia/flashcards.md",
   defaultCalloutType: "ai",
   debugLogging: false,
   enableHotReloadOfTemplates: true,
@@ -200,7 +200,7 @@ export class ScholiaSettingTab extends PluginSettingTab {
       .setDesc("Folder containing template markdown files")
       .addText((text) => {
         text.setValue(this.plugin.settings.templatesFolder);
-        text.inputEl.placeholder = "Edu-Templates";
+        text.inputEl.placeholder = "scholia/templates";
         new FolderSuggest(this.plugin.app, text.inputEl, (folder) => {
           text.setValue(folder.path);
           this.plugin.settings.templatesFolder = folder.path;
@@ -529,7 +529,7 @@ callout_folded: true
 requires_selection: true
 command_prefix: "Run"
 hotkey: []
-also_append_to: "_System/Central-Flashcards.md"
+also_append_to: "scholia/flashcards.md"
 append_format: markdown
 spaced_repetition: true
 sr_format: basic
