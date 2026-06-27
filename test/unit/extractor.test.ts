@@ -255,5 +255,69 @@ Some content with [[embed]] and ![image](url)
       expect(result).toContain("Content");
       expect(result).not.toContain("Main");
     });
+
+    describe("heading level boundary", () => {
+      const nested = [
+        "# Main",
+        "",
+        "## Section A",
+        "",
+        "Intro to A.",
+        "",
+        "### Sub A1",
+        "",
+        "Detail one.",
+        "",
+        "### Sub A2",
+        "",
+        "Detail two.",
+        "",
+        "## Section B",
+        "",
+        "Content B.",
+      ].join("\n");
+      // Heading lines: # Main=0, ## A=2, ### A1=6, ### A2=10, ## B=14
+      const headingLines = [0, 2, 6, 10, 14];
+      const subA1Line = 6;
+
+      it("defaults (nearest) to the innermost subsection", () => {
+        const app = createMockApp(
+          computeHeadingPositions(nested, headingLines),
+        );
+        const editor = createMockEditor(nested, subA1Line);
+
+        const result = extractContext(
+          app as any,
+          editor as any,
+          createMockView() as any,
+          "heading",
+        );
+
+        expect(result).toContain("Detail one.");
+        expect(result).not.toContain("Detail two.");
+        expect(result).not.toContain("Intro to A.");
+      });
+
+      it("level 2 reads the whole enclosing ## section", () => {
+        const app = createMockApp(
+          computeHeadingPositions(nested, headingLines),
+        );
+        const editor = createMockEditor(nested, subA1Line);
+
+        const result = extractContext(
+          app as any,
+          editor as any,
+          createMockView() as any,
+          "heading",
+          2,
+        );
+
+        expect(result).toContain("Intro to A.");
+        expect(result).toContain("Detail one.");
+        expect(result).toContain("Detail two.");
+        expect(result).not.toContain("Content B.");
+        expect(result).not.toContain("# Main");
+      });
+    });
   });
 });
