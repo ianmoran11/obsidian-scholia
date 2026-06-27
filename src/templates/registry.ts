@@ -326,7 +326,13 @@ export class TemplateRegistry {
     const contextText =
       effectiveScope === "selection" && selection
         ? selection
-        : extractContext(this.app, editor, view, effectiveScope);
+        : extractContext(
+            this.app,
+            editor,
+            view,
+            effectiveScope,
+            result.headingLevel,
+          );
 
     const model = effectiveConfig.model ?? this.plugin.settings.defaultModel;
     const temperature =
@@ -373,6 +379,7 @@ export class TemplateRegistry {
           result.inPlaceScope,
           llmClient,
           llmRequest,
+          result.headingLevel,
         );
         return;
       }
@@ -734,8 +741,9 @@ export class TemplateRegistry {
     scope: TemplateConfig["contextScope"],
     llmClient: OpenRouterClient,
     llmRequest: LlmRequest,
+    headingLevel = 0,
   ): Promise<void> {
-    const range = resolveScopeRange(this.app, editor, view, scope);
+    const range = resolveScopeRange(this.app, editor, view, scope, headingLevel);
     if (range.endOffset <= range.startOffset) {
       new Notice("Scholia: Nothing to edit in place for the chosen scope.");
       return;

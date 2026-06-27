@@ -271,6 +271,7 @@ describe("CustomProbeModal", () => {
       outputMode: "callout",
       sectionLevel: 2,
       inPlaceScope: "heading",
+      headingLevel: 0,
     });
   });
 

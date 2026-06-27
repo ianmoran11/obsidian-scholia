@@ -93,3 +93,139 @@
   line-height: 1.6;
   cursor: pointer;
 }
+
+/* ── Run / Custom Probe modal ───────────────────────────────────────────── */
+
+.scholia-run-modal-wrapper {
+  width: 540px;
+  max-width: 90vw;
+}
+
+.scholia-run-modal .scholia-modal-title {
+  margin: 0 0 1.1rem;
+  font-size: 1.3em;
+  font-weight: 700;
+}
+
+.scholia-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.05rem;
+}
+
+.scholia-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.scholia-field-label {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scholia-field-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.scholia-field-row > .scholia-field {
+  flex: 1 1 0;
+}
+
+.scholia-textarea {
+  width: 100%;
+  min-height: 5.5rem;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.scholia-select,
+.scholia-input {
+  width: 100%;
+}
+
+.scholia-field.is-disabled {
+  opacity: 0.45;
+}
+
+/* Segmented pill control (context scope) */
+.scholia-segmented {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+}
+
+.scholia-segment {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: calc(var(--radius-m) - 2px);
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.scholia-segment input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scholia-segment:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.scholia-segment.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+
+/* Toggle rows */
+.scholia-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.scholia-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+
+.scholia-toggle input {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* Error message + action buttons */
+.scholia-error {
+  color: var(--text-error);
+  font-size: var(--font-ui-small);
+}
+
+.scholia-button-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}

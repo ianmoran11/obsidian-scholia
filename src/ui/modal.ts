@@ -17,6 +17,8 @@ export interface CustomProbeResult {
   sectionLevel: number;
   /** Region replaced when outputMode is "in-place" (independent of scope). */
   inPlaceScope: ContextScope;
+  /** For "heading" scope: which level bounds the section. 0 = nearest. */
+  headingLevel: number;
 }
 
 export interface RunModalDefaults {
@@ -35,6 +37,7 @@ export class CustomProbeModal extends Modal {
   private outputMode: OutputMode = "callout";
   private sectionLevel: number = 2;
   private inPlaceScope: ContextScope;
+  private headingLevel: number = 0;
   /** Output mode only applies to inline templates (not file-append ones). */
   private readonly outputModeApplies: boolean;
   private errorEl: HTMLElement | null = null;
@@ -66,91 +69,140 @@ export class CustomProbeModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.empty();
+    contentEl.classList.add("scholia-run-modal");
+    this.modalEl?.classList.add("scholia-run-modal-wrapper");
 
     contentEl.createEl("h2", {
+      cls: "scholia-modal-title",
       text: `${
         this.templateConfig.customProbe ? "Custom Probe" : "Run"
       }: ${this.templateConfig.calloutLabel ?? "Scholia"}`,
     });
 
-    const formEl = contentEl.createDiv("custom-probe-form");
+    const formEl = contentEl.createDiv("scholia-form custom-probe-form");
 
     let textarea: HTMLTextAreaElement | null = null;
     if (this.templateConfig.customProbe) {
-      formEl.createEl("label", { text: "Your question or request:" });
-
-      textarea = formEl.createEl("textarea", {
-        cls: "custom-probe-textarea",
+      const field = this.createField(formEl, "Your question or request");
+      textarea = field.createEl("textarea", {
+        cls: "scholia-textarea custom-probe-textarea",
       });
       textarea.setAttr("rows", "4");
-      textarea.setAttr("placeholder", "Enter your question or request...");
+      textarea.setAttr("placeholder", "Enter your question or request…");
       textarea.focus();
     }
 
-    this.errorEl = formEl.createDiv("custom-probe-error");
-    this.errorEl.style.color = "var(--text-error)";
+    this.errorEl = formEl.createDiv("scholia-error custom-probe-error");
     this.errorEl.style.display = "none";
 
-    formEl.createEl("label", { text: "Context scope:" });
-
-    const scopeContainer = formEl.createDiv("custom-probe-scopes");
-    const scopes: ContextScope[] = ["selection", "heading", "full-note"];
+    // Context scope — segmented pill group.
+    const scopeField = this.createField(formEl, "Context scope");
+    const scopeContainer = scopeField.createDiv(
+      "scholia-segmented custom-probe-scopes",
+    );
+    const scopes: Array<{ value: ContextScope; label: string }> = [
+      { value: "selection", label: "Selection" },
+      { value: "heading", label: "Heading" },
+      { value: "full-note", label: "Full note" },
+    ];
     for (const s of scopes) {
-      const radioWrapper = scopeContainer.createDiv("radio-wrapper");
+      const radioWrapper = scopeContainer.createEl("label", {
+        cls: "scholia-segment radio-wrapper",
+        attr: { for: `scope-${s.value}` },
+      });
       const radio = radioWrapper.createEl("input", {
         type: "radio",
-        value: s,
+        value: s.value,
       });
       radio.setAttr("name", "context-scope");
-      radio.id = `scope-${s}`;
-      if (s === this.contextScope) {
-        radio.setAttr("checked", "checked");
+      radio.id = `scope-${s.value}`;
+      if (s.value === this.contextScope) {
+        radio.checked = true;
+        radioWrapper.classList.add("is-active");
       }
-      radioWrapper.createEl("label", {
-        text: s,
-        attr: { for: `scope-${s}` },
-      });
+      radioWrapper.createEl("span", { text: s.label });
 
-      radio.onclick = () => {
-        this.contextScope = s;
+      radio.onchange = () => {
+        this.contextScope = s.value;
+        scopeContainer
+          .querySelectorAll(".scholia-segment")
+          .forEach((el) => el.classList.remove("is-active"));
+        radioWrapper.classList.add("is-active");
+        syncHeadingLevel();
       };
     }
+
+    // Heading level — only meaningful when the context scope is "heading".
+    // "Nearest" keeps the innermost section; a level bounds it more broadly.
+    const headingLevelField = this.createField(formEl, "Heading level");
+    const headingLevelSelect = headingLevelField.createEl("select", {
+      cls: "scholia-select",
+    });
+    headingLevelSelect.id = "context-heading-level";
+    const headingLevelOptions: Array<{ value: number; label: string }> = [
+      { value: 0, label: "Nearest" },
+      { value: 1, label: "# (H1)" },
+      { value: 2, label: "## (H2)" },
+      { value: 3, label: "### (H3)" },
+      { value: 4, label: "#### (H4)" },
+      { value: 5, label: "##### (H5)" },
+      { value: 6, label: "###### (H6)" },
+    ];
+    for (const option of headingLevelOptions) {
+      const optionEl = headingLevelSelect.createEl("option", {
+        text: option.label,
+        value: String(option.value),
+      });
+      optionEl.value = String(option.value);
+    }
+    headingLevelSelect.value = String(this.headingLevel);
+    headingLevelSelect.onchange = () => {
+      this.headingLevel = parseInt(headingLevelSelect.value, 10);
+    };
+    const syncHeadingLevel = () => {
+      headingLevelField.style.display =
+        this.contextScope === "heading" ? "" : "none";
+    };
+    syncHeadingLevel();
 
     if (this.outputModeApplies) {
       this.renderOutputModeControls(formEl);
     }
 
-    if (this.templateConfig.customProbe) {
-      const checkboxWrapper = formEl.createDiv("checkbox-wrapper");
-      const checkbox = checkboxWrapper.createEl("input", {
-        type: "checkbox",
-      });
-      checkbox.id = "also-append-central";
-      checkbox.checked = this.alsoAppendToCentral;
-      checkboxWrapper.createEl("label", {
-        text: "Also append to central capture file",
-        attr: { for: "also-append-central" },
-      });
+    // Toggle options grouped together.
+    const optionsGroup = formEl.createDiv("scholia-options");
 
-      checkbox.onchange = () => {
-        this.alsoAppendToCentral = checkbox.checked;
-      };
+    if (this.templateConfig.customProbe) {
+      this.createToggle(
+        optionsGroup,
+        "also-append-central",
+        "Also append to central capture file",
+        this.alsoAppendToCentral,
+        (checked) => {
+          this.alsoAppendToCentral = checked;
+        },
+      );
     }
 
-    const reasoningWrapper = formEl.createDiv("checkbox-wrapper");
-    const reasoningCheckbox = reasoningWrapper.createEl("input", {
-      type: "checkbox",
-    });
-    reasoningCheckbox.id = "reasoning-enabled";
-    reasoningCheckbox.checked = this.reasoningEnabled;
-    reasoningWrapper.createEl("label", {
-      text: "Enable reasoning",
-      attr: { for: "reasoning-enabled" },
-    });
+    this.createToggle(
+      optionsGroup,
+      "reasoning-enabled",
+      "Enable reasoning",
+      this.reasoningEnabled,
+      (checked) => {
+        this.reasoningEnabled = checked;
+        effortSelect.disabled = !checked;
+        effortField.classList.toggle("is-disabled", !checked);
+      },
+    );
 
-    const effortLabel = formEl.createEl("label", { text: "Reasoning effort:" });
-    effortLabel.setAttr("for", "reasoning-effort");
-    const effortSelect = formEl.createEl("select");
+    // Reasoning effort + token budget side by side.
+    const tuningRow = formEl.createDiv("scholia-field-row");
+
+    const effortField = this.createField(tuningRow, "Reasoning effort");
+    const effortSelect = effortField.createEl("select", {
+      cls: "scholia-select",
+    });
     effortSelect.id = "reasoning-effort";
     const reasoningEfforts: Array<{ value: ReasoningEffort; label: string }> = [
       { value: "minimal", label: "Minimal" },
@@ -168,19 +220,14 @@ export class CustomProbeModal extends Modal {
     }
     effortSelect.value = this.reasoningEffort;
     effortSelect.disabled = !this.reasoningEnabled;
-
-    reasoningCheckbox.onchange = () => {
-      this.reasoningEnabled = reasoningCheckbox.checked;
-      effortSelect.disabled = !this.reasoningEnabled;
-    };
+    effortField.classList.toggle("is-disabled", !this.reasoningEnabled);
     effortSelect.onchange = () => {
       this.reasoningEffort = effortSelect.value as ReasoningEffort;
     };
 
-    const tokenLabel = formEl.createEl("label", { text: "Token budget:" });
-    tokenLabel.setAttr("for", "token-budget");
-    const tokenInput = formEl.createEl("input", {
-      cls: "token-budget-input",
+    const tokenField = this.createField(tuningRow, "Token budget");
+    const tokenInput = tokenField.createEl("input", {
+      cls: "scholia-input token-budget-input",
       type: "number",
     });
     tokenInput.id = "token-budget";
@@ -189,7 +236,7 @@ export class CustomProbeModal extends Modal {
     tokenInput.max = "65536";
     tokenInput.step = "1";
 
-    const buttonRow = formEl.createDiv("button-row");
+    const buttonRow = formEl.createDiv("scholia-button-row button-row");
 
     const cancelBtn = buttonRow.createEl("button", { text: "Cancel" });
     cancelBtn.onclick = () => {
@@ -223,10 +270,38 @@ export class CustomProbeModal extends Modal {
     });
   }
 
+  /** A labeled field group: a small caption label above a control slot. */
+  private createField(parent: HTMLElement, labelText: string): HTMLDivElement {
+    const field = parent.createDiv("scholia-field");
+    field.createEl("label", { cls: "scholia-field-label", text: labelText });
+    return field;
+  }
+
+  /** A checkbox + label row that toggles a boolean. Returns the row element. */
+  private createToggle(
+    parent: HTMLElement,
+    id: string,
+    labelText: string,
+    initial: boolean,
+    onChange: (checked: boolean) => void,
+  ): HTMLLabelElement {
+    const row = parent.createEl("label", {
+      cls: "scholia-toggle checkbox-wrapper",
+      attr: { for: id },
+    });
+    const checkbox = row.createEl("input", { type: "checkbox" });
+    checkbox.id = id;
+    checkbox.checked = initial;
+    row.createEl("span", { text: labelText });
+    checkbox.onchange = () => onChange(checkbox.checked);
+    return row;
+  }
+
   private renderOutputModeControls(formEl: HTMLElement): void {
-    const modeLabel = formEl.createEl("label", { text: "Output:" });
-    modeLabel.setAttr("for", "output-mode");
-    const modeSelect = formEl.createEl("select");
+    const row = formEl.createDiv("scholia-field-row");
+
+    const modeField = this.createField(row, "Output");
+    const modeSelect = modeField.createEl("select", { cls: "scholia-select" });
     modeSelect.id = "output-mode";
     const modes: Array<{ value: OutputMode; label: string }> = [
       { value: "callout", label: "Callout" },
@@ -243,9 +318,8 @@ export class CustomProbeModal extends Modal {
     modeSelect.value = this.outputMode;
 
     // Header level — only relevant for the "New section" mode.
-    const levelLabel = formEl.createEl("label", { text: "Header level:" });
-    levelLabel.setAttr("for", "section-level");
-    const levelSelect = formEl.createEl("select");
+    const levelField = this.createField(row, "Header level");
+    const levelSelect = levelField.createEl("select", { cls: "scholia-select" });
     levelSelect.id = "section-level";
     for (let level = 1; level <= 6; level++) {
       const optionEl = levelSelect.createEl("option", {
@@ -258,9 +332,10 @@ export class CustomProbeModal extends Modal {
 
     // Edit region — the region replaced in "Edit in place" mode. Independent
     // of the context scope above (you can read one region and rewrite another).
-    const regionLabel = formEl.createEl("label", { text: "Edit region:" });
-    regionLabel.setAttr("for", "in-place-scope");
-    const regionSelect = formEl.createEl("select");
+    const regionField = this.createField(row, "Edit region");
+    const regionSelect = regionField.createEl("select", {
+      cls: "scholia-select",
+    });
     regionSelect.id = "in-place-scope";
     const regions: Array<{ value: ContextScope; label: string }> = [
       { value: "selection", label: "Selection" },
@@ -279,10 +354,8 @@ export class CustomProbeModal extends Modal {
     const syncVisibility = () => {
       const isSection = this.outputMode === "section";
       const isInPlace = this.outputMode === "in-place";
-      levelLabel.style.display = isSection ? "" : "none";
-      levelSelect.style.display = isSection ? "" : "none";
-      regionLabel.style.display = isInPlace ? "" : "none";
-      regionSelect.style.display = isInPlace ? "" : "none";
+      levelField.style.display = isSection ? "" : "none";
+      regionField.style.display = isInPlace ? "" : "none";
     };
     syncVisibility();
 
@@ -337,6 +410,7 @@ export class CustomProbeModal extends Modal {
       outputMode: this.outputModeApplies ? this.outputMode : "callout",
       sectionLevel: this.sectionLevel,
       inPlaceScope: this.inPlaceScope,
+      headingLevel: this.headingLevel,
     });
   }
 
