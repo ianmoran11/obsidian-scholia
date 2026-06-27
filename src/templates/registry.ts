@@ -33,13 +33,6 @@ import {
 import { CustomProbeModal } from "../ui/modal";
 import { CaptureRunner } from "../commands/capture";
 import type { ReasoningEffort } from "./types";
-import { DeepInfraTtsClient } from "../audio/deepinfra";
-import {
-  assertTtsTextWithinLimit,
-  extractTtsTextFromCallout,
-  extractTtsTextFromNote,
-} from "../audio/text";
-import { saveAudioToVault } from "../audio/storage";
 import { formatGeneratedForSpacedRepetition } from "../spacedRepetition/format";
 
 interface PluginRef {
@@ -59,12 +52,6 @@ interface PluginRef {
       showRunMetadata: boolean;
       chatFollowupsEnabled: boolean;
       spacedRepetitionIntegrationEnabled: boolean;
-      deepInfraApiKey: string;
-      enableAudioGeneration: boolean;
-      ttsModel: string;
-      ttsVoice: string;
-      audioOutputFolder: string;
-      ttsCharacterLimit: number;
   };
 }
 
@@ -148,26 +135,6 @@ export class TemplateRegistry {
       name: "Scholia: Regenerate current callout",
       callback: () => {
         this.regenerateActiveCallout();
-      },
-    });
-  }
-
-  registerAudioCommand(): void {
-    this.plugin.addCommand({
-      id: "scholia.generate-audio-current-note-or-callout",
-      name: "Scholia: Generate audio for current note/callout",
-      callback: () => {
-        this.generateAudioForActiveScope();
-      },
-    });
-  }
-
-  registerNoteAudioCommand(): void {
-    this.plugin.addCommand({
-      id: "scholia.generate-audio-entire-note",
-      name: "Scholia: Generate TTS audio for entire note",
-      callback: () => {
-        this.generateAudioForEntireNote();
       },
     });
   }
@@ -403,7 +370,7 @@ export class TemplateRegistry {
           effectiveConfig,
           view,
           editor,
-          effectiveScope,
+          result.inPlaceScope,
           llmClient,
           llmRequest,
         );
@@ -636,15 +603,6 @@ export class TemplateRegistry {
         new Notice(`Scholia: ${msg}`);
       } finally {
         stream.setCalloutType(calloutType);
-        if (!stream.isAborted && config.generateAudio) {
-          await this.generateAudioForInlineCallout(
-            view,
-            editor,
-            stream,
-            streamId,
-            accumulatedContent,
-          );
-        }
         if (!stream.isAborted && config.spacedRepetition) {
           this.insertSrCardAfterInlineCallout(
             editor,
@@ -688,15 +646,6 @@ export class TemplateRegistry {
         new Notice(`Scholia: ${msg}`);
       } finally {
         stream.setCalloutType(calloutType);
-        if (!stream.isAborted && config.generateAudio) {
-          await this.generateAudioForInlineCallout(
-            view,
-            editor,
-            stream,
-            streamId,
-            accumulatedContent,
-          );
-        }
         if (!stream.isAborted && config.spacedRepetition) {
           this.insertSrCardAfterInlineCallout(
             editor,
@@ -1090,196 +1039,6 @@ export class TemplateRegistry {
     } catch {
       // editor may be unavailable; swallow
     }
-  }
-
-  private async generateAudioForInlineCallout(
-    view: MarkdownView,
-    editor: import("obsidian").Editor,
-    stream: Stream,
-    calloutId: string,
-    text: string,
-  ): Promise<void> {
-    const apiKey = this.plugin.settings.deepInfraApiKey;
-    if (!apiKey) {
-      new Notice("Scholia: DeepInfra API key not set. Audio was not generated.");
-      return;
-    }
-
-    try {
-      assertTtsTextWithinLimit(text, this.plugin.settings.ttsCharacterLimit);
-      const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
-        text,
-        model: this.plugin.settings.ttsModel,
-        voice: this.plugin.settings.ttsVoice,
-      });
-      const saved = await saveAudioToVault(this.app.vault, {
-        audio: generated.audio,
-        sourceFile: view.file,
-        calloutId,
-        audioOutputFolder: this.plugin.settings.audioOutputFolder,
-        extension: generated.extension,
-      });
-      const parsed = findScholiaCalloutAt(
-        editor,
-        editor.offsetToPos(stream.skeletonStart + 1),
-      );
-      if (!parsed) {
-        new Notice("Scholia: audio saved, but the callout could not be updated.");
-        return;
-      }
-
-      stream.inRangeWriteInProgress = true;
-      try {
-        this.insertOrUpdateCalloutAudio(editor, parsed, saved.path);
-      } finally {
-        stream.inRangeWriteInProgress = false;
-      }
-      new Notice(`Scholia: audio saved to ${saved.path}`);
-    } catch (err) {
-      new Notice(
-        `Scholia audio: ${err instanceof Error ? err.message : "Audio generation failed"}`,
-      );
-    }
-  }
-
-  async generateAudioForEntireNote(): Promise<void> {
-    const apiKey = this.plugin.settings.deepInfraApiKey;
-    if (!apiKey) {
-      new Notice("Scholia: DeepInfra API key not set. Configure in Settings.");
-      return;
-    }
-
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-      new Notice("Scholia: No active note editor.");
-      return;
-    }
-
-    const editor = view.editor;
-    const text = extractTtsTextFromNote(editor.getValue());
-
-    try {
-      assertTtsTextWithinLimit(text, this.plugin.settings.ttsCharacterLimit);
-      new Notice("Scholia: Generating audio…");
-      const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
-        text,
-        model: this.plugin.settings.ttsModel,
-        voice: this.plugin.settings.ttsVoice,
-      });
-      const saved = await saveAudioToVault(this.app.vault, {
-        audio: generated.audio,
-        sourceFile: view.file,
-        audioOutputFolder: this.plugin.settings.audioOutputFolder,
-        extension: generated.extension,
-      });
-      this.insertOrUpdateNoteAudio(editor, saved.path);
-      new Notice(`Scholia: audio saved to ${saved.path}`);
-    } catch (err) {
-      new Notice(
-        `Scholia: ${err instanceof Error ? err.message : "Audio generation failed"}`,
-      );
-    }
-  }
-
-  async generateAudioForActiveScope(): Promise<void> {
-    if (!this.plugin.settings.enableAudioGeneration) {
-      new Notice("Scholia: audio generation is disabled in settings.");
-      return;
-    }
-
-    const apiKey = this.plugin.settings.deepInfraApiKey;
-    if (!apiKey) {
-      new Notice("Scholia: DeepInfra API key not set. Configure in Settings.");
-      return;
-    }
-
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-      new Notice("Scholia: No active note editor.");
-      return;
-    }
-
-    const editor = view.editor;
-    const parsed = findScholiaCalloutAt(editor);
-    const text = parsed
-      ? extractTtsTextFromCallout(parsed)
-      : extractTtsTextFromNote(editor.getValue());
-
-    try {
-      assertTtsTextWithinLimit(text, this.plugin.settings.ttsCharacterLimit);
-      const generated = await new DeepInfraTtsClient(apiKey).generateSpeech({
-        text,
-        model: this.plugin.settings.ttsModel,
-        voice: this.plugin.settings.ttsVoice,
-      });
-      const saved = await saveAudioToVault(this.app.vault, {
-        audio: generated.audio,
-        sourceFile: view.file,
-        calloutId: parsed?.runSnapshot?.id,
-        audioOutputFolder: this.plugin.settings.audioOutputFolder,
-        extension: generated.extension,
-      });
-
-      if (parsed) {
-        this.insertOrUpdateCalloutAudio(editor, parsed, saved.path);
-      } else {
-        this.insertOrUpdateNoteAudio(editor, saved.path);
-      }
-
-      new Notice(`Scholia: audio saved to ${saved.path}`);
-    } catch (err) {
-      new Notice(
-        `Scholia: ${err instanceof Error ? err.message : "Audio generation failed"}`,
-      );
-    }
-  }
-
-  private insertOrUpdateCalloutAudio(
-    editor: import("obsidian").Editor,
-    parsed: NonNullable<ReturnType<typeof findScholiaCalloutAt>>,
-    audioPath: string,
-  ): void {
-    const content = editor.getValue();
-    const lines = content.split("\n");
-    const audioLine = `> **Audio:** ![[${audioPath}]]`;
-
-    for (let i = parsed.startLine + 1; i <= parsed.endLine; i++) {
-      if (lines[i]?.replace(/^>\s?/, "").trim().startsWith("**Audio:**")) {
-        editor.replaceRange(
-          audioLine,
-          { line: i, ch: 0 },
-          { line: i, ch: lines[i].length },
-        );
-        return;
-      }
-    }
-
-    editor.replaceRange(`\n${audioLine}`, editor.offsetToPos(parsed.endOffset));
-  }
-
-  private insertOrUpdateNoteAudio(
-    editor: import("obsidian").Editor,
-    audioPath: string,
-  ): void {
-    const content = editor.getValue();
-    const section = "## Scholia Audio";
-    const embed = `![[${audioPath}]]`;
-    const sectionIndex = content.indexOf(section);
-    if (sectionIndex === -1) {
-      const spacer = content.endsWith("\n") ? "\n" : "\n\n";
-      editor.replaceRange(`${spacer}${section}\n\n${embed}\n`, editor.offsetToPos(content.length));
-      return;
-    }
-
-    const afterSection = sectionIndex + section.length;
-    const nextHeading = content.slice(afterSection).search(/\n##\s+/);
-    const sectionEnd =
-      nextHeading === -1 ? content.length : afterSection + nextHeading;
-    editor.replaceRange(
-      `\n\n${embed}`,
-      editor.offsetToPos(afterSection),
-      editor.offsetToPos(sectionEnd),
-    );
   }
 
   private async runAppend(

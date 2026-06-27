@@ -270,6 +270,7 @@ describe("CustomProbeModal", () => {
       tokenBudget: 4096,
       outputMode: "callout",
       sectionLevel: 2,
+      inPlaceScope: "heading",
     });
   });
 

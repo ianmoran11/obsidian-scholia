@@ -34,7 +34,6 @@ export interface TemplateConfig {
   srFormat?: SpacedRepetitionFormat;
   srDeck?: string;
   srTags?: string[];
-  generateAudio?: boolean;
   systemPrompt: string;
 }
 
@@ -60,5 +59,4 @@ export interface RawTemplateFrontmatter {
   sr_format?: unknown;
   sr_deck?: unknown;
   sr_tags?: unknown;
-  generate_audio?: unknown;
 }

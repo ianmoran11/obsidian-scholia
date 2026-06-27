@@ -15,6 +15,8 @@ export interface CustomProbeResult {
   tokenBudget: number;
   outputMode: OutputMode;
   sectionLevel: number;
+  /** Region replaced when outputMode is "in-place" (independent of scope). */
+  inPlaceScope: ContextScope;
 }
 
 export interface RunModalDefaults {
@@ -32,6 +34,7 @@ export class CustomProbeModal extends Modal {
   private tokenBudget: number;
   private outputMode: OutputMode = "callout";
   private sectionLevel: number = 2;
+  private inPlaceScope: ContextScope;
   /** Output mode only applies to inline templates (not file-append ones). */
   private readonly outputModeApplies: boolean;
   private errorEl: HTMLElement | null = null;
@@ -45,6 +48,7 @@ export class CustomProbeModal extends Modal {
   ) {
     super(app);
     this.contextScope = templateConfig.contextScope;
+    this.inPlaceScope = templateConfig.contextScope;
     this.alsoAppendToCentral = !!templateConfig.alsoAppendTo;
     this.reasoningEnabled = defaults.defaultReasoningEnabled;
     this.reasoningEffort = defaults.defaultReasoningEffort;
@@ -252,20 +256,33 @@ export class CustomProbeModal extends Modal {
     }
     levelSelect.value = String(this.sectionLevel);
 
-    // Hint — explains that the context scope above is the region rewritten.
-    const inPlaceHint = formEl.createEl("p", {
-      text: "Edit in place replaces the region chosen under Context scope above.",
-      cls: "output-mode-hint",
-    });
-    inPlaceHint.style.color = "var(--text-muted)";
-    inPlaceHint.style.fontSize = "var(--font-ui-smaller)";
+    // Edit region — the region replaced in "Edit in place" mode. Independent
+    // of the context scope above (you can read one region and rewrite another).
+    const regionLabel = formEl.createEl("label", { text: "Edit region:" });
+    regionLabel.setAttr("for", "in-place-scope");
+    const regionSelect = formEl.createEl("select");
+    regionSelect.id = "in-place-scope";
+    const regions: Array<{ value: ContextScope; label: string }> = [
+      { value: "selection", label: "Selection" },
+      { value: "heading", label: "Heading section" },
+      { value: "full-note", label: "Whole note" },
+    ];
+    for (const r of regions) {
+      const optionEl = regionSelect.createEl("option", {
+        text: r.label,
+        value: r.value,
+      });
+      optionEl.value = r.value;
+    }
+    regionSelect.value = this.inPlaceScope;
 
     const syncVisibility = () => {
       const isSection = this.outputMode === "section";
       const isInPlace = this.outputMode === "in-place";
       levelLabel.style.display = isSection ? "" : "none";
       levelSelect.style.display = isSection ? "" : "none";
-      inPlaceHint.style.display = isInPlace ? "" : "none";
+      regionLabel.style.display = isInPlace ? "" : "none";
+      regionSelect.style.display = isInPlace ? "" : "none";
     };
     syncVisibility();
 
@@ -275,6 +292,9 @@ export class CustomProbeModal extends Modal {
     };
     levelSelect.onchange = () => {
       this.sectionLevel = parseInt(levelSelect.value, 10);
+    };
+    regionSelect.onchange = () => {
+      this.inPlaceScope = regionSelect.value as ContextScope;
     };
   }
 
@@ -316,6 +336,7 @@ export class CustomProbeModal extends Modal {
       tokenBudget: this.tokenBudget,
       outputMode: this.outputModeApplies ? this.outputMode : "callout",
       sectionLevel: this.sectionLevel,
+      inPlaceScope: this.inPlaceScope,
     });
   }
 

@@ -25,12 +25,6 @@ export interface ScholiaSettings {
   showRunMetadata: boolean;
   chatFollowupsEnabled: boolean;
   spacedRepetitionIntegrationEnabled: boolean;
-  deepInfraApiKey: string;
-  enableAudioGeneration: boolean;
-  ttsModel: string;
-  ttsVoice: string;
-  audioOutputFolder: string;
-  ttsCharacterLimit: number;
 }
 
 export const DEFAULT_SETTINGS: ScholiaSettings = {
@@ -48,12 +42,6 @@ export const DEFAULT_SETTINGS: ScholiaSettings = {
   showRunMetadata: true,
   chatFollowupsEnabled: true,
   spacedRepetitionIntegrationEnabled: true,
-  deepInfraApiKey: "",
-  enableAudioGeneration: false,
-  ttsModel: "hexgrad/Kokoro-82M",
-  ttsVoice: "",
-  audioOutputFolder: "_System/Scholia Audio",
-  ttsCharacterLimit: 12000,
 };
 
 class FolderSuggest extends AbstractInputSuggest<TFolder> {
@@ -290,89 +278,6 @@ export class ScholiaSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Enable audio generation")
-      .setDesc("Allow Scholia to create TTS audio with DeepInfra")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.enableAudioGeneration)
-          .onChange(async (value) => {
-            this.plugin.settings.enableAudioGeneration = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("DeepInfra API Key")
-      .setDesc("API key for DeepInfra text-to-speech")
-      .addText((text) => {
-        text.inputEl.type = "password";
-        text
-          .setValue(this.plugin.settings.deepInfraApiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.deepInfraApiKey = value;
-            await this.plugin.saveSettings();
-          });
-      });
-
-    new Setting(containerEl)
-      .setName("TTS Model")
-      .setDesc("DeepInfra TTS model slug")
-      .addText((text) =>
-        text
-          .setValue(this.plugin.settings.ttsModel)
-          .onChange(async (value) => {
-            this.plugin.settings.ttsModel = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("TTS Voice")
-      .setDesc("Optional model-specific voice id")
-      .addText((text) =>
-        text
-          .setValue(this.plugin.settings.ttsVoice)
-          .onChange(async (value) => {
-            this.plugin.settings.ttsVoice = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Audio Output Folder")
-      .setDesc("Folder where Scholia writes generated audio")
-      .addText((text) => {
-        text.setValue(this.plugin.settings.audioOutputFolder);
-        text.inputEl.placeholder = "_System/Scholia Audio";
-        new FolderSuggest(this.plugin.app, text.inputEl, (folder) => {
-          text.setValue(folder.path);
-          this.plugin.settings.audioOutputFolder = folder.path;
-          this.plugin.saveSettings();
-        });
-        text.onChange(async (value) => {
-          this.plugin.settings.audioOutputFolder = value;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName("TTS Character Limit")
-      .setDesc("Maximum characters sent to TTS in a single request (1000–50000)")
-      .addText((text) => {
-        text.inputEl.type = "number";
-        text
-          .setValue(String(this.plugin.settings.ttsCharacterLimit))
-          .onChange(async (value) => {
-            const num = Math.min(
-              50000,
-              Math.max(1000, parseInt(value) || DEFAULT_SETTINGS.ttsCharacterLimit),
-            );
-            this.plugin.settings.ttsCharacterLimit = num;
-            await this.plugin.saveSettings();
-          });
-      });
-
-    new Setting(containerEl)
       .setName("Debug logging")
       .setDesc("Log detailed debug information to console")
       .addToggle((toggle) =>
@@ -489,29 +394,6 @@ command_prefix: "Run"
 hotkey: []
 ---
 You are a helpful study partner. Use the provided note context and the user's prompt to produce a concise scholia note that captures the key idea, important nuance, and why it matters. Keep it readable and well-structured without repeating the source text verbatim.`,
-      },
-      {
-        name: "Audio-Friendly Detail",
-        content: `---
-context_scope: heading
-output_destination: inline
-model: z-ai/glm-5.1
-temperature: 0.5
-token_budget: 30000
-reasoning: true
-reasoning_effort: medium
-custom_probe: false
-callout_type: ai
-callout_label: "Audio-Friendly Detail"
-callout_folded: true
-requires_selection: false
-command_prefix: "Run"
-hotkey: []
-generate_audio: true
----
-Describe the provided note context in as much useful detail as possible while writing for text-to-speech playback.
-
-Use natural spoken-language paragraphs. Avoid tables, bullet lists, Markdown-heavy formatting, terse fragments, citations-as-parentheticals, and visual references such as "above" or "below." Expand abbreviations when helpful, define important terms, and make transitions explicit so the result is easy to understand when heard aloud.`,
       },
       {
         name: "Flashcard",
