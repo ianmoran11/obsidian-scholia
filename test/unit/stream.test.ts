@@ -67,7 +67,45 @@ describe("Stream", () => {
 
     expect(editor.getValue()).toContain("[!scholia-clarify]-");
     expect(stream.writeOffset).toBe(editor.getValue().length);
-    expect(stream.skeletonEnd).toBe(95 + ("[!scholia-clarify]".length - "[!scholia-pending]".length));
+    expect(stream.skeletonEnd).toBe(
+      95 + ("[!scholia-clarify]".length - "[!scholia-pending]".length),
+    );
+  });
+
+  it("replaces a plain streaming prefix without disturbing generated content", async () => {
+    const editor = new Editor();
+    editor.setValue("Before OLD after");
+    const view = createMockView("test.md");
+    const stream = new Stream("s1", "test.md", editor, view);
+    const pendingPrefix = "⏳ Generating…\n\n";
+
+    stream.setupPlainRegion({
+      startOffset: 7,
+      endOffset: 10,
+      initialText: pendingPrefix,
+    });
+    await stream.writeChunk("NEW");
+
+    expect(stream.replacePlainPrefix(pendingPrefix, "")).toBe(true);
+    expect(editor.getValue()).toBe("Before NEW after");
+    expect(stream.writeOffset).toBe(10);
+  });
+
+  it("does not replace a plain prefix that was edited", () => {
+    const editor = new Editor();
+    editor.setValue("OLD");
+    const view = createMockView("test.md");
+    const stream = new Stream("s1", "test.md", editor, view);
+
+    stream.setupPlainRegion({
+      startOffset: 0,
+      endOffset: 3,
+      initialText: "⏳ Generating…\n\n",
+    });
+    editor.replaceRange("Working", { line: 0, ch: 0 }, { line: 0, ch: 2 });
+
+    expect(stream.replacePlainPrefix("⏳ Generating…\n\n", "")).toBe(false);
+    expect(editor.getValue()).toContain("Working");
   });
 
   it("rejects start when the stream is aborted mid-generation", async () => {

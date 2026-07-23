@@ -1,4 +1,12 @@
-import { Editor, MarkdownFileInfo, MarkdownView, Plugin, TAbstractFile, TFile } from "obsidian";
+import {
+  Editor,
+  MarkdownFileInfo,
+  MarkdownView,
+  Notice,
+  Plugin,
+  TAbstractFile,
+  TFile,
+} from "obsidian";
 import {
   ScholiaSettings,
   DEFAULT_SETTINGS,
@@ -6,6 +14,7 @@ import {
 } from "./settings";
 import { TemplateRegistry } from "./templates/registry";
 import { StreamManager } from "./stream/manager";
+import { unwrapCalloutAtCursor } from "./commands/unwrapCallout";
 
 export default class ScholiaPlugin extends Plugin {
   settings!: ScholiaSettings;
@@ -20,6 +29,7 @@ export default class ScholiaPlugin extends Plugin {
 
     this.registry = new TemplateRegistry(this.app, this, this.streamManager);
     this.registry.registerRegenerateCommand();
+    this.registerUtilityCommands();
     this.registry.registerRegeneratePostProcessor((processor) => {
       this.registerMarkdownPostProcessor(processor);
     });
@@ -27,6 +37,18 @@ export default class ScholiaPlugin extends Plugin {
     await this.loadTemplates();
     this.registerTemplateEvents();
     this.registerEditorChangeEvent();
+  }
+
+  private registerUtilityCommands(): void {
+    this.addCommand({
+      id: "convert-callout-to-plain-text",
+      name: "Convert callout to plain text",
+      editorCallback: (editor) => {
+        if (!unwrapCalloutAtCursor(editor)) {
+          new Notice("Scholia: place the cursor inside a callout.");
+        }
+      },
+    });
   }
 
   private async loadTemplates(): Promise<void> {

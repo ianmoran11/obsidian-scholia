@@ -163,6 +163,10 @@ Commands are also accessible from:
 - **Mobile Toolbar** (when enabled)
 - **Hotkeys** (if configured in template frontmatter)
 
+### Utility commands
+
+- **Convert callout to plain text** — place the cursor anywhere inside an Obsidian callout and run the command. Scholia removes the callout header and one blockquote marker from each body line, preserving any custom title and the callout's Markdown content.
+
 ## Callout Types
 
 Scholia ships with five custom callout styles:
@@ -183,7 +187,7 @@ All callouts work in both light and dark themes.
 1. **Select text** (or place cursor in a heading/section)
 2. **Run a Scholia command** from palette, toolbar, or hotkey
 3. **Optionally attach other Markdown notes** as reference context in the run modal
-4. **AI response streams** into a collapsible callout inserted below your selection
+4. **AI response streams** into the chosen output. An hourglass marks callout, new-section, and in-place generation until it finishes
 5. **If configured**, the response is also appended to a central capture file
 
 The plugin uses OpenRouter for LLM access. Your API key is stored locally in Obsidian's plugin data.

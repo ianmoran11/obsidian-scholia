@@ -1227,8 +1227,10 @@ describe("TemplateRegistry", () => {
       );
       const editor = makeEditor("Intro paragraph.");
       const view = { file: { path: "Reading/Note.md" } };
+      const contentSeenDuringGeneration: string[] = [];
       const llmClient = {
         stream: async function* () {
+          contentSeenDuringGeneration.push(editor.getValue());
           yield { type: "content", text: "Generated body." };
         },
       };
@@ -1248,8 +1250,10 @@ describe("TemplateRegistry", () => {
         {} as any,
       );
 
+      expect(contentSeenDuringGeneration[0]).toContain("### ⏳ AI Summary");
       expect(editor.getValue()).toContain("### AI Summary");
       expect(editor.getValue()).toContain("Generated body.");
+      expect(editor.getValue()).not.toContain("⏳");
       // No callout line-prefixing in plain section output.
       expect(editor.getValue()).not.toContain("> Generated");
     });
@@ -1263,8 +1267,10 @@ describe("TemplateRegistry", () => {
       );
       const editor = makeEditor("Before OLD after", { from: 7, to: 10 });
       const view = { file: { path: "Reading/Note.md" } };
+      const contentSeenDuringGeneration: string[] = [];
       const llmClient = {
         stream: async function* () {
+          contentSeenDuringGeneration.push(editor.getValue());
           yield { type: "content", text: "NEW" };
         },
       };
@@ -1282,7 +1288,11 @@ describe("TemplateRegistry", () => {
         {} as any,
       );
 
+      expect(contentSeenDuringGeneration[0]).toBe(
+        "Before ⏳ Generating…\n\n after",
+      );
       expect(editor.getValue()).toBe("Before NEW after");
+      expect(editor.getValue()).not.toContain("⏳");
     });
 
     it("restores the original content if an in-place stream fails", async () => {

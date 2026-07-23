@@ -32,6 +32,8 @@ import { CaptureRunner } from "../commands/capture";
 import type { ReasoningEffort } from "./types";
 import { formatGeneratedForSpacedRepetition } from "../spacedRepetition/format";
 
+const GENERATING_INDICATOR = "⏳ Generating…";
+
 interface PluginRef {
   app: App;
   addCommand: (command: Command) => Command;
@@ -741,10 +743,14 @@ export class TemplateRegistry {
 
     const level = Math.min(6, Math.max(1, sectionLevel));
     const heading = `${"#".repeat(level)} ${config.calloutLabel ?? templateName}`;
+    const sectionPrefix = `\n\n${heading}\n\n`;
+    const pendingSectionPrefix = `\n\n${"#".repeat(level)} ⏳ ${
+      config.calloutLabel ?? templateName
+    }\n\n`;
     stream.setupPlainRegion({
       startOffset: insertOffset,
       endOffset: insertOffset,
-      initialText: `\n\n${heading}\n\n`,
+      initialText: pendingSectionPrefix,
     });
 
     try {
@@ -775,6 +781,7 @@ export class TemplateRegistry {
       await this.writePlainError(stream, msg);
       new Notice(`Scholia: ${msg}`);
     } finally {
+      stream.replacePlainPrefix(pendingSectionPrefix, sectionPrefix);
       this.streamManager.removeStream(streamId);
     }
   }
@@ -814,10 +821,12 @@ export class TemplateRegistry {
       return;
     }
 
+    const pendingPrefix = `${GENERATING_INDICATOR}\n\n`;
+    let restoredOriginal = false;
     stream.setupPlainRegion({
       startOffset: range.startOffset,
       endOffset: range.endOffset,
-      initialText: "",
+      initialText: pendingPrefix,
     });
 
     try {
@@ -833,6 +842,7 @@ export class TemplateRegistry {
             editor.offsetToPos(stream.skeletonStart),
             editor.offsetToPos(stream.writeOffset),
           );
+          restoredOriginal = true;
         } catch {
           // editor may be unavailable; swallow
         } finally {
@@ -841,6 +851,9 @@ export class TemplateRegistry {
       }
       new Notice(`Scholia: ${msg}`);
     } finally {
+      if (!restoredOriginal) {
+        stream.replacePlainPrefix(pendingPrefix, "");
+      }
       this.streamManager.removeStream(streamId);
     }
   }

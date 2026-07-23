@@ -105,6 +105,33 @@ export class Stream {
     }
   }
 
+  /**
+   * Replace the fixed prefix created by setupPlainRegion without disturbing
+   * content already streamed after it. Returns false if the prefix was edited.
+   */
+  replacePlainPrefix(expectedText: string, replacementText: string): boolean {
+    const content = this.editor.getValue();
+    const currentPrefix = content.slice(this.skeletonStart, this.skeletonEnd);
+    if (currentPrefix !== expectedText) return false;
+
+    this.inRangeWriteInProgress = true;
+    try {
+      this.editor.replaceRange(
+        replacementText,
+        this.editor.offsetToPos(this.skeletonStart),
+        this.editor.offsetToPos(this.skeletonEnd),
+      );
+      const delta = replacementText.length - expectedText.length;
+      this.skeletonEnd += delta;
+      this.writeOffset += delta;
+      this.lastKnownContent = this.editor.getValue();
+      this.lastKnownLength = this.lastKnownContent.length;
+      return true;
+    } finally {
+      this.inRangeWriteInProgress = false;
+    }
+  }
+
   async writeChunk(raw: string): Promise<void> {
     this.inRangeWriteInProgress = true;
     try {
