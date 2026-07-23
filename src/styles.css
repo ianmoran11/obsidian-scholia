@@ -155,6 +155,64 @@
   opacity: 0.45;
 }
 
+.scholia-field-description {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+}
+
+.scholia-attachment-picker {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.scholia-attachment-picker .scholia-attachment-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.scholia-attachments.has-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.scholia-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.2rem 0.35rem 0.2rem 0.55rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  font-size: var(--font-ui-smaller);
+}
+
+.scholia-attachment-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scholia-attachment-chip button {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.scholia-attachment-chip button:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
 /* Segmented pill control (context scope) */
 .scholia-segmented {
   display: flex;

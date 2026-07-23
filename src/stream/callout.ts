@@ -24,6 +24,10 @@ export interface ScholiaRunSnapshot {
   sourcePath?: string;
   question?: string;
   contextScope: ContextScope;
+  /** Heading boundary selected for heading context. Omitted means nearest. */
+  headingLevel?: number;
+  /** Vault paths for transient Markdown references used by this run. */
+  attachedNotePaths?: string[];
   model: string;
   temperature: number;
   maxTokens: number;
@@ -49,6 +53,13 @@ export function buildSkeleton(opts: BuildSkeletonOpts): string {
   const questionSection = safeQuestion
     ? `> **Question:** ${safeQuestion}\n` + `> \n`
     : "";
+  const attachments = opts.runSnapshot?.attachedNotePaths ?? [];
+  const attachmentSection =
+    attachments.length > 0
+      ? `> **Attached notes:** ${attachments
+          .map((path) => `\`${path.replace(/`/g, "\\`")}\``)
+          .join(", ")}\n> \n`
+      : "";
   const snapshotLine = opts.runSnapshot
     ? `> ${serializeRunSnapshot(opts.runSnapshot)}\n`
     : "";
@@ -58,6 +69,7 @@ export function buildSkeleton(opts: BuildSkeletonOpts): string {
     `> **Context:** *${safeSel}*\n` +
     `> \n` +
     questionSection +
+    attachmentSection +
     `> **Response:**\n` +
     `> `
   );

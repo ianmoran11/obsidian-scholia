@@ -105,7 +105,9 @@ function createMockApp() {
   };
 }
 
-function createMockTemplate(overrides: Partial<TemplateConfig> = {}): TemplateConfig {
+function createMockTemplate(
+  overrides: Partial<TemplateConfig> = {},
+): TemplateConfig {
   return {
     systemPrompt: "You are a helpful tutor.",
     contextScope: "heading",
@@ -147,15 +149,16 @@ describe("CustomProbeModal", () => {
 
     expect(modal.contentEl.querySelector("h2")?.textContent).toBe("Run: Test");
     expect(modal.contentEl.querySelector(".custom-probe-textarea")).toBeNull();
-    expect(
-      modal.contentEl.querySelector("#also-append-central"),
-    ).toBeNull();
+    expect(modal.contentEl.querySelector("#also-append-central")).toBeNull();
   });
 
   it("renders custom probe controls when enabled", () => {
     const modal = new CustomProbeModal(
       app as any,
-      createMockTemplate({ customProbe: true, alsoAppendTo: "_System/Central.md" }),
+      createMockTemplate({
+        customProbe: true,
+        alsoAppendTo: "_System/Central.md",
+      }),
       modalDefaults,
     );
 
@@ -170,6 +173,11 @@ describe("CustomProbeModal", () => {
     expect(
       modal.contentEl.querySelector("#also-append-central"),
     ).not.toBeNull();
+    expect(
+      modal.contentEl
+        .querySelector(".scholia-attachment-input")
+        ?.getAttribute("aria-describedby"),
+    ).toBe("scholia-attachment-description");
   });
 
   it("shows reasoning and token budget controls for every run", () => {
@@ -227,7 +235,9 @@ describe("CustomProbeModal", () => {
     );
 
     modal.open();
-    (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
+    (
+      modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement
+    ).click();
 
     const errorEl = modal.contentEl.querySelector(
       ".custom-probe-error",
@@ -259,11 +269,14 @@ describe("CustomProbeModal", () => {
     effortSelect.value = "high";
     effortSelect.dispatchEvent(new Event("change"));
     tokenBudget.value = "4096";
-    (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
+    (
+      modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement
+    ).click();
 
     await expect(resultPromise).resolves.toEqual({
       query: "",
       scope: "heading",
+      attachedNotePaths: [],
       alsoAppendToCentral: false,
       reasoningEnabled: false,
       reasoningEffort: "high",
@@ -300,6 +313,71 @@ describe("CustomProbeModal", () => {
     });
   });
 
+  it("adds, removes, and submits Markdown note attachments", async () => {
+    app.vault.getMarkdownFiles.mockReturnValue([
+      { path: "References/First.md" },
+      { path: "References/Second.md" },
+    ]);
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate(),
+      modalDefaults,
+    );
+
+    const resultPromise = modal.openAndWait();
+    const input = modal.contentEl.querySelector(
+      ".scholia-attachment-input",
+    ) as HTMLInputElement;
+    const addButton = modal.contentEl.querySelector(
+      ".scholia-attachment-picker button",
+    ) as HTMLButtonElement;
+
+    input.value = "References/First";
+    addButton.click();
+    input.value = "References/Second.md";
+    addButton.click();
+
+    let chips = modal.contentEl.querySelectorAll(".scholia-attachment-chip");
+    expect(chips).toHaveLength(2);
+    expect(chips[0].textContent).toContain("References/First.md");
+
+    (chips[0].querySelector("button") as HTMLButtonElement).click();
+    chips = modal.contentEl.querySelectorAll(".scholia-attachment-chip");
+    expect(chips).toHaveLength(1);
+
+    (
+      modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement
+    ).click();
+
+    await expect(resultPromise).resolves.toMatchObject({
+      attachedNotePaths: ["References/Second.md"],
+    });
+  });
+
+  it("rejects a typed path that is not a Markdown note", () => {
+    app.vault.getMarkdownFiles.mockReturnValue([]);
+    const modal = new CustomProbeModal(
+      app as any,
+      createMockTemplate(),
+      modalDefaults,
+    );
+
+    modal.open();
+    const input = modal.contentEl.querySelector(
+      ".scholia-attachment-input",
+    ) as HTMLInputElement;
+    input.value = "Assets/diagram.png";
+    (
+      modal.contentEl.querySelector(
+        ".scholia-attachment-picker button",
+      ) as HTMLButtonElement
+    ).click();
+
+    expect(
+      modal.contentEl.querySelector(".custom-probe-error")?.textContent,
+    ).toBe("Choose a Markdown note from your vault.");
+  });
+
   it("clamps the submitted token budget", async () => {
     const modal = new CustomProbeModal(
       app as any,
@@ -312,7 +390,9 @@ describe("CustomProbeModal", () => {
       "#token-budget",
     ) as HTMLInputElement;
     tokenBudget.value = "999999";
-    (modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement).click();
+    (
+      modal.contentEl.querySelector("button.mod-cta") as HTMLButtonElement
+    ).click();
 
     await expect(resultPromise).resolves.toMatchObject({
       tokenBudget: 65536,

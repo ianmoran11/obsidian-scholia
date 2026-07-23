@@ -67,7 +67,10 @@ const mockStreamManager = {
 };
 
 describe("TemplateRegistry", () => {
-  const createPlugin = (app: ReturnType<typeof createMockApp>, overrides = {}) => ({
+  const createPlugin = (
+    app: ReturnType<typeof createMockApp>,
+    overrides = {},
+  ) => ({
     app: app as any,
     addCommand: (cmd: { id: string; name: string }) => {
       app._commands.set(cmd.id, cmd);
@@ -94,7 +97,11 @@ describe("TemplateRegistry", () => {
       const app = createMockApp(new Map());
       app.vault.getFolderByPath = () => null;
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(0);
@@ -110,7 +117,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
 
@@ -165,7 +176,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(0);
@@ -181,7 +196,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(0);
@@ -199,7 +218,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
@@ -230,7 +253,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
 
@@ -265,7 +292,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
@@ -289,7 +320,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(
@@ -320,7 +355,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       files.set("Edu-Templates/Clarify.md", {
         path: "Edu-Templates/Clarify.md",
@@ -346,7 +385,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
@@ -370,7 +413,11 @@ describe("TemplateRegistry", () => {
 
       const app = createMockApp(files);
 
-      const registry = new TemplateRegistry(app as any, createPlugin(app), mockStreamManager as any);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app),
+        mockStreamManager as any,
+      );
 
       await registry.load();
       expect(registry.getRegisteredCommands().size).toBe(1);
@@ -430,6 +477,7 @@ describe("TemplateRegistry", () => {
       vi.spyOn(CustomProbeModal.prototype, "openAndWait").mockResolvedValue({
         query: "Explain this section",
         scope: "full-note",
+        attachedNotePaths: [],
         alsoAppendToCentral: false,
         reasoningEnabled: true,
         reasoningEffort: "medium",
@@ -453,17 +501,78 @@ describe("TemplateRegistry", () => {
       expect(runAppend).toHaveBeenCalledOnce();
     });
 
+    it("adds attached Markdown notes to the LLM user context", async () => {
+      const files = new Map<string, MockFile>();
+      files.set("References/Related.md", {
+        path: "References/Related.md",
+        stat: { mtime: 1000 },
+        content: "---\ntags: [private]\n---\n# Related\n\nSupporting evidence.",
+      });
+      const app = createMockApp(files);
+      const view = {
+        file: { path: "Reading/Note.md" },
+        editor: {
+          getSelection: () => "",
+          getValue: () => "# Current\n\nPrimary context.",
+          getCursor: () => ({ line: 0, ch: 0 }),
+          getLine: () => "# Current",
+          replaceRange: vi.fn(),
+          posToOffset: () => 0,
+          offsetToPos: () => ({ line: 0, ch: 0 }),
+        },
+      };
+      app.workspace.getActiveViewOfType = vi.fn(() => view);
+      const registry = new TemplateRegistry(
+        app as any,
+        createPlugin(app, { openRouterApiKey: "test-key" }),
+        mockStreamManager as any,
+      );
+      const runAppend = vi
+        .spyOn(registry as any, "runAppend")
+        .mockResolvedValue(undefined);
+      vi.spyOn(CustomProbeModal.prototype, "openAndWait").mockResolvedValue({
+        query: "Compare these notes",
+        scope: "full-note",
+        attachedNotePaths: ["References/Related.md"],
+        alsoAppendToCentral: false,
+        reasoningEnabled: true,
+        reasoningEffort: "medium",
+        tokenBudget: 1024,
+        outputMode: "callout",
+        sectionLevel: 2,
+        inPlaceScope: "full-note",
+        headingLevel: 0,
+      });
+
+      await (registry as any).runTemplateCommand(
+        "Edu-Templates/Probe.md",
+        {
+          contextScope: "full-note",
+          outputDestination: "_System/Log.md",
+          customProbe: true,
+          requiresSelection: false,
+          systemPrompt: "prompt",
+        },
+        "Probe",
+      );
+
+      const request = runAppend.mock.calls[0][4];
+      expect(request.user).toContain("Primary context.");
+      expect(request.user).toContain(
+        '<scholia-attached-note path="References/Related.md">',
+      );
+      expect(request.user).toContain("Supporting evidence.");
+      expect(request.user).not.toContain("tags: [private]");
+      expect(request.system).toContain("untrusted reference material");
+    });
+
     it("does not insert a skeleton when the stream cap is exceeded", async () => {
       const files = new Map<string, MockFile>();
       const app = createMockApp(files);
-      const registry = new TemplateRegistry(
-        app as any,
-        createPlugin(app),
-        {
-          ...mockStreamManager,
-          addStream: vi.fn().mockReturnValue(false),
-        } as any,
-      );
+      const registry = new TemplateRegistry(app as any, createPlugin(app), {
+        ...mockStreamManager,
+        addStream: vi.fn().mockReturnValue(false),
+      } as any);
 
       const content = "Selected text";
       const editor = {
@@ -512,16 +621,26 @@ describe("TemplateRegistry", () => {
         value: "Selected text",
         getCursor: () => ({ line: 0, ch: "Selected text".length }),
         getLine: () => "Selected text",
-        replaceRange(this: { value: string }, text: string, start: { line: number; ch: number }, end?: { line: number; ch: number }) {
+        replaceRange(
+          this: { value: string },
+          text: string,
+          start: { line: number; ch: number },
+          end?: { line: number; ch: number },
+        ) {
           const startOffset = this.posToOffset(start);
           const endOffset = end ? this.posToOffset(end) : startOffset;
           this.value =
-            this.value.slice(0, startOffset) + text + this.value.slice(endOffset);
+            this.value.slice(0, startOffset) +
+            text +
+            this.value.slice(endOffset);
         },
         getValue(this: { value: string }) {
           return this.value;
         },
-        posToOffset(this: { value: string }, pos: { line: number; ch: number }) {
+        posToOffset(
+          this: { value: string },
+          pos: { line: number; ch: number },
+        ) {
           const lines = this.value.split("\n");
           let offset = 0;
           for (let i = 0; i < pos.line && i < lines.length; i++) {
@@ -592,6 +711,7 @@ describe("TemplateRegistry", () => {
       vi.spyOn(CustomProbeModal.prototype, "openAndWait").mockResolvedValue({
         query: "Why does this matter?\nUse plain language.",
         scope: "full-note",
+        attachedNotePaths: [],
         alsoAppendToCentral: false,
         reasoningEnabled: true,
         reasoningEffort: "medium",
@@ -661,7 +781,8 @@ describe("TemplateRegistry", () => {
           if (!modalOpened && name === "from") {
             return this.offsetToPos(selectedStart);
           }
-          if (!modalOpened && name === "to") return this.offsetToPos(selectedEnd);
+          if (!modalOpened && name === "to")
+            return this.offsetToPos(selectedEnd);
           return this.offsetToPos(this.value.indexOf("After"));
         },
         getLine(this: { value: string }, line: number) {
@@ -703,6 +824,7 @@ describe("TemplateRegistry", () => {
           return {
             query: "Can you explain this in more detail?",
             scope: "full-note",
+            attachedNotePaths: [],
             alsoAppendToCentral: false,
             reasoningEnabled: true,
             reasoningEffort: "medium",
@@ -794,30 +916,51 @@ describe("TemplateRegistry", () => {
         llmClient as any,
         {} as any,
         "Why does this matter?\nUse plain language.",
+        ["References/Related.md"],
+        1,
       );
 
-      expect(editor.getValue()).toContain("**Question:** Why does this matter?");
+      expect(editor.getValue()).toContain(
+        "**Question:** Why does this matter?",
+      );
       expect(editor.getValue()).toContain("> Use plain language.");
       expect(editor.getValue()).toContain("**Response:**");
       expect(editor.getValue()).toContain("Answer");
+      expect(editor.getValue()).toContain(
+        "**Attached notes:** `References/Related.md`",
+      );
+      const parsed = findScholiaCalloutAt(editor as any);
+      expect(parsed?.runSnapshot?.attachedNotePaths).toEqual([
+        "References/Related.md",
+      ]);
+      expect(parsed?.runSnapshot?.headingLevel).toBe(1);
     });
 
     it("adds an SR-compatible card to the current note when inline flashcards also capture centrally", async () => {
       const files = new Map<string, MockFile>();
       const app = createMockApp(files);
-      const capturedFiles = new Map<string, { path: string; content: string; stat: { mtime: number } }>();
+      const capturedFiles = new Map<
+        string,
+        { path: string; content: string; stat: { mtime: number } }
+      >();
       app.vault.getFolderByPath = ((path: string) =>
-        path === "Edu-Templates" || path === "_System" ? { path } : null) as any;
+        path === "Edu-Templates" || path === "_System"
+          ? { path }
+          : null) as any;
       app.vault.createFolder = vi.fn(async () => undefined) as any;
       app.vault.create = vi.fn(async (path: string, content: string) => {
         const file = { path, content, stat: { mtime: Date.now() } };
         capturedFiles.set(path, file);
         return file;
       }) as any;
-      app.vault.modify = vi.fn(async (file: { content: string }, content: string) => {
-        file.content = content;
-      }) as any;
-      app.vault.read = vi.fn(async (file: { content?: string }) => file.content ?? "") as any;
+      app.vault.modify = vi.fn(
+        async (file: { content: string }, content: string) => {
+          file.content = content;
+        },
+      ) as any;
+      app.vault.read = vi.fn(
+        async (file: { content?: string }) => file.content ?? "",
+      ) as any;
       app.vault.getFileByPath = ((path: string) =>
         capturedFiles.get(path) ?? null) as any;
       const editor = {
@@ -1017,7 +1160,10 @@ describe("TemplateRegistry", () => {
   });
 
   describe("output modes", () => {
-    function makeEditor(initial: string, selection?: { from: number; to: number }) {
+    function makeEditor(
+      initial: string,
+      selection?: { from: number; to: number },
+    ) {
       return {
         value: initial,
         getSelection() {
@@ -1047,12 +1193,17 @@ describe("TemplateRegistry", () => {
           const startOffset = this.posToOffset(start);
           const endOffset = end ? this.posToOffset(end) : startOffset;
           this.value =
-            this.value.slice(0, startOffset) + text + this.value.slice(endOffset);
+            this.value.slice(0, startOffset) +
+            text +
+            this.value.slice(endOffset);
         },
         getValue(this: { value: string }) {
           return this.value;
         },
-        posToOffset(this: { value: string }, pos: { line: number; ch: number }) {
+        posToOffset(
+          this: { value: string },
+          pos: { line: number; ch: number },
+        ) {
           const lines = this.value.split("\n");
           let offset = 0;
           for (let i = 0; i < pos.line && i < lines.length; i++) {

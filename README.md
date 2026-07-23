@@ -20,19 +20,19 @@ npm run build
 
 Open **Settings → Scholia** to configure:
 
-| Setting                  | Description                           | Default                         |
-| ------------------------ | ------------------------------------- | ------------------------------- |
-| OpenRouter API Key       | Your OpenRouter API key               | (required)                      |
-| Default Model            | OpenRouter model slug                 | `z-ai/glm-5.1`                  |
-| Default Temperature      | LLM temperature (0.0–2.0)             | `0.7`                           |
-| Default Token Budget     | Maximum output token budget           | `30000`                         |
-| Default Reasoning        | Enable reasoning for runs by default  | `true`                          |
-| Default Reasoning Effort | Reasoning strength when enabled       | `medium`                        |
-| Templates Folder         | Where your templates live             | `scholia/templates`             |
+| Setting                  | Description                           | Default                 |
+| ------------------------ | ------------------------------------- | ----------------------- |
+| OpenRouter API Key       | Your OpenRouter API key               | (required)              |
+| Default Model            | OpenRouter model slug                 | `z-ai/glm-5.1`          |
+| Default Temperature      | LLM temperature (0.0–2.0)             | `0.7`                   |
+| Default Token Budget     | Maximum output token budget           | `30000`                 |
+| Default Reasoning        | Enable reasoning for runs by default  | `true`                  |
+| Default Reasoning Effort | Reasoning strength when enabled       | `medium`                |
+| Templates Folder         | Where your templates live             | `scholia/templates`     |
 | Central Capture File     | Default capture destination           | `scholia/flashcards.md` |
-| Default Callout Type     | Visual style for responses            | `ai`                            |
-| Hot-reload templates     | Update commands when templates change | `true`                          |
-| Debug logging            | Log to developer console              | `false`                         |
+| Default Callout Type     | Visual style for responses            | `ai`                    |
+| Hot-reload templates     | Update commands when templates change | `true`                  |
+| Debug logging            | Log to developer console              | `false`                 |
 
 ## Writing a Template
 
@@ -147,6 +147,12 @@ You are a helpful study partner. Use the provided section context to answer the 
 
 When triggered, a modal appears letting the user type a custom query. The query is appended to the system prompt and sent to the LLM.
 
+### Attaching other notes
+
+Every run modal includes an optional **Attach notes** picker. Search for and add any number of Markdown notes from the vault; remove a note by clicking its × chip before submitting. The selected notes are sent to the model as clearly labeled reference context alongside the selection, heading, or full-note context.
+
+Attachments are intentionally limited to Markdown notes. PDFs, images, audio, and other vault files need separate extraction or multimodal handling and are not sent. There is no fixed attachment-count limit, but the combined note contents must fit the selected model's context window; attaching many large notes can increase latency and cost.
+
 ## Commands
 
 Once templates are in place, Scholia registers commands in the **Command Palette**. Look for commands prefixed with your `command_prefix` setting (default: "Run").
@@ -176,8 +182,9 @@ All callouts work in both light and dark themes.
 
 1. **Select text** (or place cursor in a heading/section)
 2. **Run a Scholia command** from palette, toolbar, or hotkey
-3. **AI response streams** into a collapsible callout inserted below your selection
-4. **If configured**, the response is also appended to a central capture file
+3. **Optionally attach other Markdown notes** as reference context in the run modal
+4. **AI response streams** into a collapsible callout inserted below your selection
+5. **If configured**, the response is also appended to a central capture file
 
 The plugin uses OpenRouter for LLM access. Your API key is stored locally in Obsidian's plugin data.
 

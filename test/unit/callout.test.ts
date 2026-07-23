@@ -94,6 +94,38 @@ describe("buildSkeleton", () => {
     expect(skeleton).not.toContain("**Question:**");
   });
 
+  it("shows attached note paths from the run snapshot", () => {
+    const skeleton = buildSkeleton({
+      calloutType: "ai",
+      calloutLabel: "Probe",
+      folded: true,
+      commandName: "Probe",
+      selectionText: "Primary context",
+      runSnapshot: {
+        id: "scholia-test",
+        schemaVersion: 1,
+        templatePath: "Templates/Probe.md",
+        templateName: "Probe",
+        contextScope: "heading",
+        attachedNotePaths: ["Reference/A.md", "Reference/B.md"],
+        model: "test/model",
+        temperature: 0.7,
+        maxTokens: 1024,
+        reasoningEnabled: true,
+        reasoningEffort: "medium",
+        calloutType: "ai",
+        calloutLabel: "Probe",
+        calloutFolded: true,
+        outputDestination: "inline",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    });
+
+    expect(skeleton).toContain(
+      "**Attached notes:** `Reference/A.md`, `Reference/B.md`",
+    );
+  });
+
   it("includes command name in label", () => {
     const skeleton = buildSkeleton({
       calloutType: "scholia-flashcard",

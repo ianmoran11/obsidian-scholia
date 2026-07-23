@@ -95,7 +95,22 @@ export class Editor {
   }
 }
 
+export class AbstractInputSuggest<T> {
+  constructor(
+    public app: App,
+    public inputEl: HTMLInputElement,
+  ) {}
+
+  setValue(value: string): void {
+    this.inputEl.value = value;
+  }
+
+  close(): void {}
+}
+
 export class Modal {
+  constructor(public app: App) {}
+
   open(): void {}
   close(): void {}
 }

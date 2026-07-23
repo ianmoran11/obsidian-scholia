@@ -1,4 +1,4 @@
-import { App, Modal } from "obsidian";
+import { AbstractInputSuggest, App, Modal, TFile } from "obsidian";
 import type {
   ContextScope,
   OutputMode,
@@ -9,6 +9,7 @@ import type {
 export interface CustomProbeResult {
   query: string;
   scope: ContextScope;
+  attachedNotePaths: string[];
   alsoAppendToCentral: boolean;
   reasoningEnabled: boolean;
   reasoningEffort: ReasoningEffort;
@@ -27,9 +28,43 @@ export interface RunModalDefaults {
   defaultTokenBudget: number;
 }
 
+class NoteSuggest extends AbstractInputSuggest<TFile> {
+  constructor(
+    app: App,
+    inputEl: HTMLInputElement,
+    private selectedPaths: () => readonly string[],
+    private onSelectNote: (file: TFile) => void,
+  ) {
+    super(app, inputEl);
+  }
+
+  getSuggestions(query: string): TFile[] {
+    const lower = query.trim().toLowerCase();
+    const selected = new Set(this.selectedPaths());
+    return this.app.vault
+      .getMarkdownFiles()
+      .filter(
+        (file) =>
+          !selected.has(file.path) && file.path.toLowerCase().includes(lower),
+      )
+      .slice(0, 50);
+  }
+
+  renderSuggestion(file: TFile, el: HTMLElement): void {
+    el.setText(file.path);
+  }
+
+  selectSuggestion(file: TFile): void {
+    this.setValue("");
+    this.close();
+    this.onSelectNote(file);
+  }
+}
+
 export class CustomProbeModal extends Modal {
   private query: string = "";
   private contextScope: ContextScope;
+  private attachedNotePaths: string[] = [];
   private alsoAppendToCentral: boolean = false;
   private reasoningEnabled: boolean;
   private reasoningEffort: ReasoningEffort;
@@ -41,6 +76,7 @@ export class CustomProbeModal extends Modal {
   /** Output mode only applies to inline templates (not file-append ones). */
   private readonly outputModeApplies: boolean;
   private errorEl: HTMLElement | null = null;
+  private noteSuggest: NoteSuggest | null = null;
   private resolvePromise: ((result: CustomProbeResult | null) => void) | null =
     null;
 
@@ -165,6 +201,8 @@ export class CustomProbeModal extends Modal {
     };
     syncHeadingLevel();
 
+    this.renderAttachmentControls(formEl);
+
     if (this.outputModeApplies) {
       this.renderOutputModeControls(formEl);
     }
@@ -270,6 +308,108 @@ export class CustomProbeModal extends Modal {
     });
   }
 
+  private renderAttachmentControls(formEl: HTMLElement): void {
+    const field = this.createField(formEl, "Attach notes (optional)");
+    const description = field.createDiv("scholia-field-description");
+    description.id = "scholia-attachment-description";
+    description.setText(
+      "Add Markdown notes as reference context. Note contents are sent with this query; model context limits still apply.",
+    );
+
+    const picker = field.createDiv("scholia-attachment-picker");
+    const input = picker.createEl("input", {
+      cls: "scholia-input scholia-attachment-input",
+      type: "text",
+      attr: {
+        placeholder: "Search by note name or path…",
+        "aria-label": "Search Markdown notes to attach",
+        "aria-describedby": "scholia-attachment-description",
+      },
+    });
+    const addButton = picker.createEl("button", {
+      text: "Add",
+      attr: { type: "button" },
+    });
+    const selectedEl = field.createDiv("scholia-attachments");
+
+    const renderSelected = () => {
+      selectedEl.empty();
+      selectedEl.classList.toggle(
+        "has-attachments",
+        this.attachedNotePaths.length > 0,
+      );
+      for (const path of this.attachedNotePaths) {
+        const chip = selectedEl.createDiv("scholia-attachment-chip");
+        chip.createEl("span", { text: path });
+        const removeButton = chip.createEl("button", {
+          text: "×",
+          attr: {
+            type: "button",
+            "aria-label": `Remove attached note ${path}`,
+          },
+        });
+        removeButton.onclick = () => {
+          this.attachedNotePaths = this.attachedNotePaths.filter(
+            (selectedPath) => selectedPath !== path,
+          );
+          renderSelected();
+        };
+      }
+    };
+
+    const addNote = (file: TFile) => {
+      if (!this.attachedNotePaths.includes(file.path)) {
+        this.attachedNotePaths.push(file.path);
+        renderSelected();
+      }
+      input.value = "";
+      this.hideError();
+    };
+
+    const addTypedPath = () => {
+      const typed = input.value.trim();
+      if (!typed) return;
+      const normalized = typed.toLowerCase().endsWith(".md")
+        ? typed
+        : `${typed}.md`;
+      const file = this.app.vault
+        .getMarkdownFiles()
+        .find((candidate) => candidate.path === normalized);
+      if (!file) {
+        this.showError("Choose a Markdown note from your vault.");
+        return;
+      }
+      addNote(file);
+    };
+
+    this.noteSuggest = new NoteSuggest(
+      this.app,
+      input,
+      () => this.attachedNotePaths,
+      addNote,
+    );
+    addButton.onclick = addTypedPath;
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        addTypedPath();
+      }
+    });
+    renderSelected();
+  }
+
+  private showError(message: string): void {
+    if (!this.errorEl) return;
+    this.errorEl.setText(message);
+    this.errorEl.style.display = "block";
+  }
+
+  private hideError(): void {
+    if (!this.errorEl) return;
+    this.errorEl.style.display = "none";
+  }
+
   /** A labeled field group: a small caption label above a control slot. */
   private createField(parent: HTMLElement, labelText: string): HTMLDivElement {
     const field = parent.createDiv("scholia-field");
@@ -319,7 +459,9 @@ export class CustomProbeModal extends Modal {
 
     // Header level — only relevant for the "New section" mode.
     const levelField = this.createField(row, "Header level");
-    const levelSelect = levelField.createEl("select", { cls: "scholia-select" });
+    const levelSelect = levelField.createEl("select", {
+      cls: "scholia-select",
+    });
     levelSelect.id = "section-level";
     for (let level = 1; level <= 6; level++) {
       const optionEl = levelSelect.createEl("option", {
@@ -382,18 +524,12 @@ export class CustomProbeModal extends Modal {
     const parsedBudget = parseInt(tokenInput?.value ?? "", 10);
 
     if (this.templateConfig.customProbe && !query) {
-      if (this.errorEl) {
-        this.errorEl.setText("Please enter a question or request.");
-        this.errorEl.style.display = "block";
-      }
+      this.showError("Please enter a question or request.");
       return;
     }
 
     if (!Number.isFinite(parsedBudget)) {
-      if (this.errorEl) {
-        this.errorEl.setText("Please enter a valid token budget.");
-        this.errorEl.style.display = "block";
-      }
+      this.showError("Please enter a valid token budget.");
       return;
     }
 
@@ -403,6 +539,7 @@ export class CustomProbeModal extends Modal {
     this.resolvePromise?.({
       query: this.query,
       scope: this.contextScope,
+      attachedNotePaths: [...this.attachedNotePaths],
       alsoAppendToCentral: this.alsoAppendToCentral,
       reasoningEnabled: this.reasoningEnabled,
       reasoningEffort: this.reasoningEffort,
@@ -415,6 +552,8 @@ export class CustomProbeModal extends Modal {
   }
 
   onClose(): void {
+    this.noteSuggest?.close();
+    this.noteSuggest = null;
     const { contentEl } = this;
     contentEl.empty();
   }
