@@ -62,7 +62,7 @@ For testing Obsidian on the Mac itself, `http://127.0.0.1:3210` is accepted. On 
 
 ## 4. Configure Scholia on Android
 
-Build/install the updated plugin as described in the root README. In **Settings → Scholia**:
+Build/install the updated plugin as described in the root README. In **Settings → Scholia Reader**:
 
 1. Choose **Pi on Mac (Codex subscription)** as AI backend.
 2. Set **Pi bridge URL** to the private HTTPS origin (no path, query or token in the URL).

@@ -1,12 +1,12 @@
 {
-	"id": "scholia",
-	"name": "Scholia",
-	"version": "0.1.22",
+	"id": "scholia-reader",
+	"name": "Scholia Reader",
+	"version": "0.1.23",
 	"minAppVersion": "1.5.0",
 	"description": "Active-reading AI annotations for Obsidian.",
-	"author": "Scholia",
-	"authorUrl": "",
+	"author": "ianmoran11",
+	"authorUrl": "https://github.com/ianmoran11",
 	"license": "MIT",
-	"homepageUrl": "",
+	"homepageUrl": "https://github.com/ianmoran11/obsidian-scholia",
 	"isDesktopOnly": false
 }

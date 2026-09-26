@@ -10,7 +10,7 @@ export class OpenRouterClient implements LlmClient {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://obsidian.md/plugins/scholia",
+        "HTTP-Referer": "https://obsidian.md/plugins/scholia-reader",
         "X-Title": "Scholia",
       },
       body: JSON.stringify({

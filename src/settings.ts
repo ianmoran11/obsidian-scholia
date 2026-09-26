@@ -91,7 +91,7 @@ export class ScholiaSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Scholia Settings" });
+    containerEl.createEl("h2", { text: "Scholia Reader Settings" });
 
     const piBackend = this.plugin.settings.llmBackend === "pi";
     new Setting(containerEl)

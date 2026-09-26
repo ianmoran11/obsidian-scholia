@@ -1,30 +1,47 @@
-# Scholia
+# Scholia Reader
 
 Active-reading AI annotations for Obsidian. Scholia lets you annotate, clarify, and extract knowledge from notes without breaking reading flow — AI responses stream directly into your note as native Obsidian callouts.
 
 ## Latest release
 
-**[0.1.22 — Pi / Codex subscription backend](releases/0.1.22.md)** adds a private Mac bridge for Android Obsidian, reconnectable requests, and safer cancellation. The bridge requires separate [Mac/Tailscale setup](bridge/README.md); BRAT updates only the Obsidian plugin.
+**[0.1.23 — Scholia Reader identity and settings migration](releases/0.1.23.md)** gives this plugin the collision-free ID `scholia-reader`. Desktop and mobile remain supported (Obsidian 1.5.0+). The private Pi/Codex bridge still requires separate [Mac/Tailscale setup](bridge/README.md); BRAT installs only the Obsidian plugin.
 
 ## Installation
 
-**BRAT:** add `ianmoran11/obsidian-scholia` as a beta plugin, or run BRAT's update check if it is already installed. Release `0.1.22` includes the versioned `manifest.json`, `main.js`, and `styles.css` assets that BRAT needs.
+**Fresh BRAT install:** add `ianmoran11/obsidian-scholia` as a beta plugin, then enable **Scholia Reader**. Release `0.1.23` includes the versioned `manifest.json`, `main.js`, and `styles.css` assets.
 
-1. **Download the latest release** from the Releases page
-2. **Copy `main.js`, `manifest.json`, and `styles.css`** to `<your-vault>/.obsidian/plugins/scholia/`
-3. **Enable the plugin** in Obsidian: Settings → Community Plugins → Scholia
+**The community-store “Scholia” by shashanyu is unrelated.** Do not install it for this project or edit its manifest to force mobile compatibility.
+
+### Upgrade from our old Scholia (0.1.0–0.1.22)
+
+The ID changed from `scholia` to `scholia-reader`; an ordinary BRAT update may fail to find the new folder, especially on Android. Use the reinstall flow:
+
+1. Back up your vault, including the old `<configDir>/plugins/scholia/` folder and its `data.json` (contains credentials). Disable old **Scholia**, but **do not uninstall or delete it before copying settings**.
+2. In BRAT run **Plugins: Choose a single plugin to reinstall**, select `ianmoran11/obsidian-scholia`, and install the latest release (`0.1.23`). Unpin the old version first if necessary. BRAT writes the new manifest ID's folder; it does **not** migrate plugin data.
+3. Enable **Scholia Reader**. On its first load with no new saved data, the plugin checks the old manifest's identity and copies only recognized, correctly typed plugin settings, including API keys and bridge tokens. Custom Obsidian configuration directories are supported. The old files are never changed or deleted.
+4. Check the copy-success notice, then verify **Settings → Scholia Reader**, credentials, template folder, capture destination and templates. Existing templates, notes, callout styles and saved run snapshots keep their original names and paths; default paths remain `scholia/templates` and `scholia/flashcards.md`.
+5. Reassign command hotkeys and mobile toolbar bindings as needed: command IDs now start with `scholia-reader:` instead of `scholia:`. Only plugin settings are copied, not Obsidian hotkeys, toolbar configuration or enabled-plugin lists.
+6. Keep old Scholia disabled. Only after verification, optionally uninstall the old copy (the old `scholia` folder), keeping your backup.
+
+If source identity/data cannot be verified or a read/save fails, no automatic import is accepted and no defaults are saved by the migration. Keep the old files, fix the source, then disable/re-enable Scholia Reader to retry **before changing its settings**. Even an existing empty new settings object (`{}`) prevents automatic copying; it is never overwritten. If new settings already exist, retain backups and configure/compare settings manually rather than expecting an automatic overwrite.
+
+### Manual installation / development
+
+1. **Download the latest release** from [Releases](https://github.com/ianmoran11/obsidian-scholia/releases/latest).
+2. **Copy `main.js`, `manifest.json`, and `styles.css`** to `<your-vault>/<configDir>/plugins/scholia-reader/` (`<configDir>` is normally `.obsidian`).
+3. **Enable Scholia Reader** in Settings → Community Plugins. For an upgrade, follow the backup, copy-verification and rebind steps above before removing the old copy.
 
 Or use the development version:
 
 ```bash
 npm install
 npm run build
-# Then symlink: scripts/install-to-vault.sh
+# Then symlink into the repository test vault: scripts/install-to-vault.sh
 ```
 
 ## Configuration
 
-Open **Settings → Scholia** to configure. OpenRouter remains the default backend.
+Open **Settings → Scholia Reader** to configure. OpenRouter remains the default backend.
 
 **Use your Codex subscription instead:** select **Pi on Mac (Codex subscription)** and connect to the separate Mac bridge over private Tailscale HTTPS. This works with Obsidian on Android; Pi authentication stays on the Mac. See the [Pi bridge setup guide](bridge/README.md) for installation, security, launchd and mobile recovery limits. There is no automatic OpenRouter fallback.
 
@@ -207,8 +224,8 @@ With Pi selected, omit template `model:` overrides to use the Pi default, or spe
 
 ## Uninstalling
 
-1. Disable the plugin in Settings → Community Plugins
-2. Remove the plugin folder: `<vault>/.obsidian/plugins/scholia/`
+1. Disable Scholia Reader in Settings → Community Plugins
+2. Remove the plugin folder: `<vault>/<configDir>/plugins/scholia-reader/`
 3. Templates in `scholia/templates/` are just regular markdown files — delete them if you no longer need them
 
 ## Troubleshooting

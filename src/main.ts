@@ -15,6 +15,7 @@ import {
 import { TemplateRegistry } from "./templates/registry";
 import { StreamManager } from "./stream/manager";
 import { unwrapCalloutAtCursor } from "./commands/unwrapCallout";
+import { migrateLegacySettings } from "./legacySettings";
 
 export default class ScholiaPlugin extends Plugin {
   settings!: ScholiaSettings;
@@ -107,7 +108,14 @@ export default class ScholiaPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const saved = await this.loadData();
+    if (this.unloaded) return;
+    const migrated =
+      saved == null
+        ? await migrateLegacySettings(this, () => this.unloaded)
+        : undefined;
+    if (this.unloaded) return;
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved, migrated);
   }
 
   async saveSettings() {
