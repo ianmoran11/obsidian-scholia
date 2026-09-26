@@ -1,13 +1,14 @@
 {
   "name": "obsidian-scholia",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Active-reading AI annotations for Obsidian.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs --prod",
     "lint": "eslint src --ext .ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:release": "node scripts/check-release.mjs"
   },
   "keywords": [
     "obsidian",

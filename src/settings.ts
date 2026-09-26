@@ -8,9 +8,14 @@ import {
   TFolder,
 } from "obsidian";
 import type ScholiaPlugin from "./main";
+import { PiBridgeClient } from "./llm/piBridge";
 import type { ReasoningEffort } from "./templates/types";
 
 export interface ScholiaSettings {
+  llmBackend: "openrouter" | "pi";
+  piBridgeUrl: string;
+  piBridgeToken: string;
+  piModel: string;
   openRouterApiKey: string;
   defaultModel: string;
   defaultTemperature: number;
@@ -28,6 +33,10 @@ export interface ScholiaSettings {
 }
 
 export const DEFAULT_SETTINGS: ScholiaSettings = {
+  llmBackend: "openrouter",
+  piBridgeUrl: "",
+  piBridgeToken: "",
+  piModel: "openai-codex/gpt-5.5",
   openRouterApiKey: "",
   defaultModel: "z-ai/glm-5.1",
   defaultTemperature: 0.7,
@@ -84,104 +93,200 @@ export class ScholiaSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.createEl("h2", { text: "Scholia Settings" });
 
+    const piBackend = this.plugin.settings.llmBackend === "pi";
     new Setting(containerEl)
-      .setName("OpenRouter API Key")
-      .setDesc("API key for OpenRouter (https://openrouter.ai)")
-      .addText((text) => {
-        text.inputEl.type = "password";
-        text
-          .setValue(this.plugin.settings.openRouterApiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.openRouterApiKey = value;
-            await this.plugin.saveSettings();
-          });
-      });
-
-    const modelDatalist = containerEl.createEl("datalist");
-    modelDatalist.id = "scholia-model-datalist";
-    const modelSlugs = [
-      "z-ai/glm-5.1",
-      "anthropic/claude-3-haiku",
-      "openai/gpt-4o-mini",
-      "google/gemini-pro",
-    ];
-    for (const slug of modelSlugs) {
-      modelDatalist.createEl("option", { value: slug });
-    }
-
-    new Setting(containerEl)
-      .setName("Default Model")
-      .setDesc("OpenRouter model slug")
-      .addText((text) => {
-        text.inputEl.setAttribute("list", "scholia-model-datalist");
-        text
-          .setValue(this.plugin.settings.defaultModel)
-          .onChange(async (value) => {
-            this.plugin.settings.defaultModel = value;
-            await this.plugin.saveSettings();
-          });
-      });
-
-    new Setting(containerEl)
-      .setName("Default Temperature")
-      .setDesc("Sampling temperature (0.0–2.0)")
-      .addSlider((slider) =>
-        slider
-          .setLimits(0, 2, 0.1)
-          .setValue(this.plugin.settings.defaultTemperature)
-          .onChange(async (value) => {
-            this.plugin.settings.defaultTemperature = value;
-            await this.plugin.saveSettings();
-          })
-          .showTooltip(),
-      );
-
-    new Setting(containerEl)
-      .setName("Default Token Budget")
-      .setDesc("Maximum output token budget per run")
-      .addText((text) => {
-        text.inputEl.type = "number";
-        text
-          .setValue(String(this.plugin.settings.defaultMaxTokens))
-          .onChange(async (value) => {
-            const num = Math.min(
-              65536,
-              Math.max(128, parseInt(value) || DEFAULT_SETTINGS.defaultMaxTokens),
-            );
-            this.plugin.settings.defaultMaxTokens = num;
-            await this.plugin.saveSettings();
-          });
-      });
-
-    new Setting(containerEl)
-      .setName("Default Reasoning")
-      .setDesc("Enable reasoning by default for Scholia runs")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.defaultReasoningEnabled)
-          .onChange(async (value) => {
-            this.plugin.settings.defaultReasoningEnabled = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Default Reasoning Effort")
-      .setDesc("Reasoning strength when reasoning is enabled")
+      .setName("AI backend")
+      .setDesc(
+        "Pi uses your Mac's Codex subscription. No automatic OpenRouter fallback.",
+      )
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("minimal", "Minimal")
-          .addOption("low", "Low")
-          .addOption("medium", "Medium")
-          .addOption("high", "High")
-          .addOption("xhigh", "Extra high")
-          .setValue(this.plugin.settings.defaultReasoningEffort)
+          .addOption("openrouter", "OpenRouter")
+          .addOption("pi", "Pi on Mac (Codex subscription)")
+          .setValue(this.plugin.settings.llmBackend)
           .onChange(async (value) => {
-            this.plugin.settings.defaultReasoningEffort =
-              value as ReasoningEffort;
+            this.plugin.settings.llmBackend = value as "openrouter" | "pi";
             await this.plugin.saveSettings();
+            this.display();
           }),
       );
+    if (piBackend) {
+      new Setting(containerEl)
+        .setName("Pi bridge URL")
+        .setDesc(
+          "Private Tailscale HTTPS origin, e.g. https://mac-mini.your-tailnet.ts.net (no path).",
+        )
+        .addText((text) =>
+          text
+            .setValue(this.plugin.settings.piBridgeUrl)
+            .onChange(async (value) => {
+              this.plugin.settings.piBridgeUrl = value.trim();
+              await this.plugin.saveSettings();
+            }),
+        );
+      new Setting(containerEl)
+        .setName("Pi bridge access token")
+        .setDesc(
+          "Bridge token only, not your OpenAI credentials. Stored in plugin data; protect synced copies.",
+        )
+        .addText((text) => {
+          text.inputEl.type = "password";
+          text
+            .setValue(this.plugin.settings.piBridgeToken)
+            .onChange(async (value) => {
+              this.plugin.settings.piBridgeToken = value.trim();
+              await this.plugin.saveSettings();
+            });
+        });
+      new Setting(containerEl)
+        .setName("Pi Codex model")
+        .setDesc(
+          "Use openai-codex/<model-id>. Test Connection lists the Mac's supported model IDs.",
+        )
+        .addText((text) =>
+          text
+            .setValue(this.plugin.settings.piModel)
+            .onChange(async (value) => {
+              this.plugin.settings.piModel = value.trim();
+              await this.plugin.saveSettings();
+            }),
+        );
+      new Setting(containerEl)
+        .setName("Test Connection")
+        .setDesc(
+          "Checks the bridge, subscription login and model list without generating text.",
+        )
+        .addButton((button) =>
+          button.setButtonText("Test Connection").onClick(async () => {
+            button.setDisabled(true);
+            try {
+              const client = new PiBridgeClient(
+                this.plugin.settings.piBridgeToken,
+                this.plugin.settings.piBridgeUrl,
+              );
+              const health = await client.testConnection();
+              const selected = health.models.includes(
+                this.plugin.settings.piModel,
+              );
+              new Notice(
+                `Scholia: Pi connected. ${selected ? "Selected model available." : "Selected model not found."} Models: ${health.models.join(", ")}`,
+                15000,
+              );
+            } catch (error) {
+              new Notice(`Scholia: ${(error as Error).message}`, 10000);
+            } finally {
+              button.setDisabled(false);
+            }
+          }),
+        );
+      containerEl.createEl("p", {
+        text: "Pi uses medium reasoning. Temperature and output token budgets (including template overrides) are not applied. The Mac enforces a 5-minute deadline and 1 MiB output limit. Subscription usage limits still apply.",
+      });
+    }
+
+    if (!piBackend) {
+      new Setting(containerEl)
+        .setName("OpenRouter API Key")
+        .setDesc("API key for OpenRouter (https://openrouter.ai)")
+        .addText((text) => {
+          text.inputEl.type = "password";
+          text
+            .setValue(this.plugin.settings.openRouterApiKey)
+            .onChange(async (value) => {
+              this.plugin.settings.openRouterApiKey = value;
+              await this.plugin.saveSettings();
+            });
+        });
+
+      const modelDatalist = containerEl.createEl("datalist");
+      modelDatalist.id = "scholia-model-datalist";
+      const modelSlugs = [
+        "z-ai/glm-5.1",
+        "anthropic/claude-3-haiku",
+        "openai/gpt-4o-mini",
+        "google/gemini-pro",
+      ];
+      for (const slug of modelSlugs) {
+        modelDatalist.createEl("option", { value: slug });
+      }
+
+      new Setting(containerEl)
+        .setName("Default Model")
+        .setDesc("OpenRouter model slug")
+        .addText((text) => {
+          text.inputEl.setAttribute("list", "scholia-model-datalist");
+          text
+            .setValue(this.plugin.settings.defaultModel)
+            .onChange(async (value) => {
+              this.plugin.settings.defaultModel = value;
+              await this.plugin.saveSettings();
+            });
+        });
+
+      new Setting(containerEl)
+        .setName("Default Temperature")
+        .setDesc("Sampling temperature (0.0–2.0)")
+        .addSlider((slider) =>
+          slider
+            .setLimits(0, 2, 0.1)
+            .setValue(this.plugin.settings.defaultTemperature)
+            .onChange(async (value) => {
+              this.plugin.settings.defaultTemperature = value;
+              await this.plugin.saveSettings();
+            })
+            .showTooltip(),
+        );
+
+      new Setting(containerEl)
+        .setName("Default Token Budget")
+        .setDesc("Maximum output token budget per run")
+        .addText((text) => {
+          text.inputEl.type = "number";
+          text
+            .setValue(String(this.plugin.settings.defaultMaxTokens))
+            .onChange(async (value) => {
+              const num = Math.min(
+                65536,
+                Math.max(
+                  128,
+                  parseInt(value) || DEFAULT_SETTINGS.defaultMaxTokens,
+                ),
+              );
+              this.plugin.settings.defaultMaxTokens = num;
+              await this.plugin.saveSettings();
+            });
+        });
+
+      new Setting(containerEl)
+        .setName("Default Reasoning")
+        .setDesc("Enable reasoning by default for Scholia runs")
+        .addToggle((toggle) =>
+          toggle
+            .setValue(this.plugin.settings.defaultReasoningEnabled)
+            .onChange(async (value) => {
+              this.plugin.settings.defaultReasoningEnabled = value;
+              await this.plugin.saveSettings();
+            }),
+        );
+
+      new Setting(containerEl)
+        .setName("Default Reasoning Effort")
+        .setDesc("Reasoning strength when reasoning is enabled")
+        .addDropdown((dropdown) =>
+          dropdown
+            .addOption("minimal", "Minimal")
+            .addOption("low", "Low")
+            .addOption("medium", "Medium")
+            .addOption("high", "High")
+            .addOption("xhigh", "Extra high")
+            .setValue(this.plugin.settings.defaultReasoningEffort)
+            .onChange(async (value) => {
+              this.plugin.settings.defaultReasoningEffort =
+                value as ReasoningEffort;
+              await this.plugin.saveSettings();
+            }),
+        );
+    }
 
     new Setting(containerEl)
       .setName("Templates Folder")
@@ -255,7 +360,9 @@ export class ScholiaSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Chat follow-ups")
-      .setDesc("Append custom-probe follow-up questions inside the current Scholia callout")
+      .setDesc(
+        "Append custom-probe follow-up questions inside the current Scholia callout",
+      )
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.chatFollowupsEnabled)
@@ -267,7 +374,9 @@ export class ScholiaSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Spaced Repetition integration")
-      .setDesc("Format enabled templates as Obsidian Spaced Repetition flashcards")
+      .setDesc(
+        "Format enabled templates as Obsidian Spaced Repetition flashcards",
+      )
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.spacedRepetitionIntegrationEnabled)

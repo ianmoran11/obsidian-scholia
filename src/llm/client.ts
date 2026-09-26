@@ -1,4 +1,7 @@
+export type LlmProvider = "openrouter" | "openai-codex";
+
 export interface LlmRequest {
+  provider?: LlmProvider;
   model: string;
   temperature: number;
   maxTokens: number;
@@ -24,7 +27,12 @@ export interface LlmCost {
 
 export type LlmStreamEvent =
   | { type: "content"; text: string }
-  | { type: "metadata"; usage?: LlmUsage; cost?: LlmCost; providerRaw?: unknown };
+  | {
+      type: "metadata";
+      usage?: LlmUsage;
+      cost?: LlmCost;
+      providerRaw?: unknown;
+    };
 
 export interface LlmClient {
   stream(req: LlmRequest, signal: AbortSignal): AsyncGenerator<LlmStreamEvent>;

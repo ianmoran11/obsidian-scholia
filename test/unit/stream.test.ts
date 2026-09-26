@@ -503,3 +503,123 @@ describe("StreamManager.handleEditorChange", () => {
     expect(stream2.writeOffset).toBe(originalOffset2);
   });
 });
+
+describe("reconnected stream editor safety", () => {
+  it("rejects recovered chunks after an unreported edit instead of writing at stale offsets", async () => {
+    const editor = new Editor();
+    editor.setValue("original");
+    const stream = new Stream(
+      "pi",
+      "test.md",
+      editor,
+      createMockView("test.md"),
+    );
+    stream.writeOffset = 8;
+    editor.setValue("replacement");
+    await expect(stream.writeChunk("recovered answer")).rejects.toThrow(
+      /Note changed/,
+    );
+    expect(editor.getValue()).toBe("replacement");
+    expect(stream.abort.signal.aborted).toBe(true);
+  });
+
+  it("rejects chunks/finalization if the editor has switched files", async () => {
+    const editor = new Editor();
+    editor.setValue("> [!scholia-pending] Result\n> ");
+    const view = createMockView("test.md");
+    const stream = new Stream("pi", "test.md", editor, view);
+    (view as any).file = { path: "other.md" };
+    await expect(stream.writeChunk("wrong note")).rejects.toThrow(
+      /Note changed/,
+    );
+    stream.setCalloutType("ai");
+    expect(editor.getValue()).toContain("scholia-pending");
+  });
+
+  it("aborts same-length edits in generated content, beyond the initial skeleton", () => {
+    const editor = new Editor();
+    editor.setValue("before HEADER generated");
+    const stream = createStreamWithState(
+      "pi",
+      "test.md",
+      editor,
+      createMockView("test.md"),
+      7,
+      13,
+      23,
+    );
+    const manager = new StreamManager({ app: {} } as any);
+    manager.addStream(stream);
+    editor.setValue("before HEADER Generated");
+    manager.handleEditorChange(editor, "test.md");
+    expect(stream.abort.signal.aborted).toBe(true);
+  });
+});
+
+describe("reconnect edit-range and unload safety", () => {
+  it.each([
+    ["whole document replacement", "Replacement document"],
+    ["deletion starting before and ending inside output", "AAAAUTPUT trailing"],
+    ["same-length replacement across output", "ZZZZZZZZZZZZZZZZZZZZZZZZZ"],
+  ])("aborts on %s", async (_, replacement) => {
+    const editor = new Editor();
+    editor.setValue("AAAA intro OUTPUT trailing");
+    const stream = createStreamWithState(
+      "s",
+      "test.md",
+      editor,
+      createMockView("test.md"),
+      11,
+      17,
+      17,
+    );
+    const manager = new StreamManager({ app: {} as any });
+    manager.addStream(stream);
+    editor.setValue(replacement);
+    manager.handleEditorChange(editor, "test.md");
+    expect(stream.isAborted).toBe(true);
+    await expect(stream.writeChunk("late result")).rejects.toThrow();
+    expect(editor.getValue()).toBe(replacement);
+  });
+
+  it("still shifts an edit wholly before output", () => {
+    const editor = new Editor();
+    editor.setValue("AAAA intro OUTPUT trailing");
+    const stream = createStreamWithState(
+      "s",
+      "test.md",
+      editor,
+      createMockView("test.md"),
+      11,
+      17,
+      17,
+    );
+    const manager = new StreamManager({ app: {} as any });
+    manager.addStream(stream);
+    editor.setValue("intro OUTPUT trailing");
+    manager.handleEditorChange(editor, "test.md");
+    expect(stream.isAborted).toBe(false);
+    expect(stream.skeletonStart).toBe(6);
+  });
+
+  it("disposal aborts streams and append controllers and rejects subsequent runs", () => {
+    const editor = new Editor();
+    const stream = new Stream(
+      "s",
+      "test.md",
+      editor,
+      createMockView("test.md"),
+    );
+    const manager = new StreamManager({ app: {} as any });
+    manager.addStream(stream);
+    const append = new AbortController();
+    manager.track(append);
+    manager.dispose();
+    expect(stream.isAborted).toBe(true);
+    expect(append.signal.aborted).toBe(true);
+    expect(manager.addStream(stream)).toBe(false);
+    const late = new AbortController();
+    manager.track(late);
+    expect(late.signal.aborted).toBe(true);
+  });
+});

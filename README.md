@@ -2,7 +2,13 @@
 
 Active-reading AI annotations for Obsidian. Scholia lets you annotate, clarify, and extract knowledge from notes without breaking reading flow — AI responses stream directly into your note as native Obsidian callouts.
 
+## Latest release
+
+**[0.1.22 — Pi / Codex subscription backend](releases/0.1.22.md)** adds a private Mac bridge for Android Obsidian, reconnectable requests, and safer cancellation. The bridge requires separate [Mac/Tailscale setup](bridge/README.md); BRAT updates only the Obsidian plugin.
+
 ## Installation
+
+**BRAT:** add `ianmoran11/obsidian-scholia` as a beta plugin, or run BRAT's update check if it is already installed. Release `0.1.22` includes the versioned `manifest.json`, `main.js`, and `styles.css` assets that BRAT needs.
 
 1. **Download the latest release** from the Releases page
 2. **Copy `main.js`, `manifest.json`, and `styles.css`** to `<your-vault>/.obsidian/plugins/scholia/`
@@ -18,11 +24,16 @@ npm run build
 
 ## Configuration
 
-Open **Settings → Scholia** to configure:
+Open **Settings → Scholia** to configure. OpenRouter remains the default backend.
+
+**Use your Codex subscription instead:** select **Pi on Mac (Codex subscription)** and connect to the separate Mac bridge over private Tailscale HTTPS. This works with Obsidian on Android; Pi authentication stays on the Mac. See the [Pi bridge setup guide](bridge/README.md) for installation, security, launchd and mobile recovery limits. There is no automatic OpenRouter fallback.
 
 | Setting                  | Description                           | Default                 |
 | ------------------------ | ------------------------------------- | ----------------------- |
-| OpenRouter API Key       | Your OpenRouter API key               | (required)              |
+| AI backend               | OpenRouter or Pi on Mac               | `OpenRouter`            |
+| Pi bridge URL/token      | Private HTTPS bridge and access token | (required for Pi)       |
+| Pi Codex model           | Backend-specific Codex model ID       | `openai-codex/gpt-5.5`   |
+| OpenRouter API Key       | Your OpenRouter API key               | (OpenRouter only)       |
 | Default Model            | OpenRouter model slug                 | `z-ai/glm-5.1`          |
 | Default Temperature      | LLM temperature (0.0–2.0)             | `0.7`                   |
 | Default Token Budget     | Maximum output token budget           | `30000`                 |
@@ -190,7 +201,9 @@ All callouts work in both light and dark themes.
 4. **AI response streams** into the chosen output. An hourglass marks callout, new-section, and in-place generation until it finishes
 5. **If configured**, the response is also appended to a central capture file
 
-The plugin uses OpenRouter for LLM access. Your API key is stored locally in Obsidian's plugin data.
+The plugin uses OpenRouter or your configured Pi bridge for LLM access. OpenRouter API keys and bridge access tokens are stored in Obsidian's plugin data; protect synced copies. OpenAI OAuth credentials remain in Pi's auth directory on the Mac.
+
+With Pi selected, omit template `model:` overrides to use the Pi default, or specify `openai-codex/<model-id>`. OpenRouter model overrides are rejected rather than remapped. Pi uses medium reasoning; temperature/token-budget overrides are not applied, and subscription monetary cost is recorded as unavailable. See the [bridge guide](bridge/README.md#tuning-and-usage).
 
 ## Uninstalling
 

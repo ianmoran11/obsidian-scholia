@@ -17,6 +17,7 @@ export const STREAMING_CALLOUT_TYPE = "scholia-pending";
 export const SCHOLIA_RUN_MARKER = "scholia:run";
 
 export interface ScholiaRunSnapshot {
+  provider?: import("../llm/client").LlmProvider;
   id: string;
   schemaVersion: 1;
   templatePath: string;
@@ -29,8 +30,8 @@ export interface ScholiaRunSnapshot {
   /** Vault paths for transient Markdown references used by this run. */
   attachedNotePaths?: string[];
   model: string;
-  temperature: number;
-  maxTokens: number;
+  temperature?: number;
+  maxTokens?: number;
   reasoningEnabled: boolean;
   reasoningEffort: ReasoningEffort;
   calloutType: string;

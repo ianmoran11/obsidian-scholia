@@ -23,6 +23,7 @@ export interface CustomProbeResult {
 }
 
 export interface RunModalDefaults {
+  piBackend?: boolean;
   defaultReasoningEnabled: boolean;
   defaultReasoningEffort: ReasoningEffort;
   defaultTokenBudget: number;
@@ -273,6 +274,23 @@ export class CustomProbeModal extends Modal {
     tokenInput.min = "128";
     tokenInput.max = "65536";
     tokenInput.step = "1";
+
+    if (this.defaults.piBackend) {
+      const reasoningToggle =
+        optionsGroup.querySelector<HTMLInputElement>("#reasoning-enabled");
+      if (reasoningToggle) {
+        reasoningToggle.checked = true;
+        reasoningToggle.disabled = true;
+      }
+      this.reasoningEnabled = true;
+      this.reasoningEffort = "medium";
+      effortSelect.value = "medium";
+      effortSelect.disabled = true;
+      tokenInput.disabled = true;
+      formEl.createEl("p", {
+        text: "Pi/Codex uses medium reasoning. Temperature and token budget overrides are not applied; the Mac enforces time/output limits.",
+      });
+    }
 
     const buttonRow = formEl.createDiv("scholia-button-row button-row");
 

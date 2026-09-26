@@ -20,9 +20,16 @@ export default class ScholiaPlugin extends Plugin {
   settings!: ScholiaSettings;
   registry!: TemplateRegistry;
   streamManager!: StreamManager;
+  private unloaded = false;
+
+  onunload(): void {
+    this.unloaded = true;
+    this.streamManager?.dispose();
+  }
 
   async onload() {
     await this.loadSettings();
+    if (this.unloaded) return;
     this.addSettingTab(new ScholiaSettingTab(this.app, this));
 
     this.streamManager = new StreamManager(this);
@@ -35,6 +42,7 @@ export default class ScholiaPlugin extends Plugin {
     });
 
     await this.loadTemplates();
+    if (this.unloaded) return;
     this.registerTemplateEvents();
     this.registerEditorChangeEvent();
   }

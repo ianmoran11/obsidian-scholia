@@ -1,13 +1,13 @@
-import type { LlmCost, LlmRequest, LlmUsage } from "./client";
+import type { LlmCost, LlmProvider, LlmRequest, LlmUsage } from "./client";
 import type { ContextScope, ReasoningEffort } from "../templates/types";
 
 export interface LlmRunMetadata {
   id: string;
   timestamp: string;
-  provider: "openrouter";
+  provider: LlmProvider;
   model: string;
-  temperature: number;
-  maxTokens: number;
+  temperature?: number;
+  maxTokens?: number;
   reasoningEnabled: boolean;
   reasoningEffort: ReasoningEffort;
   contextScope: ContextScope;
@@ -36,10 +36,10 @@ export function buildRunMetadata(
   return {
     id: opts.id,
     timestamp: opts.timestamp,
-    provider: "openrouter",
+    provider: req.provider ?? "openrouter",
     model: req.model,
-    temperature: req.temperature,
-    maxTokens: req.maxTokens,
+    temperature: req.provider === "openai-codex" ? undefined : req.temperature,
+    maxTokens: req.provider === "openai-codex" ? undefined : req.maxTokens,
     reasoningEnabled: req.reasoningEnabled,
     reasoningEffort: req.reasoningEffort,
     contextScope: opts.contextScope,
@@ -49,7 +49,7 @@ export function buildRunMetadata(
     totalTokens: opts.usage?.totalTokens,
     reasoningTokens: opts.usage?.reasoningTokens,
     cachedTokens: opts.usage?.cachedTokens,
-    cost: opts.cost,
+    cost: req.provider === "openai-codex" ? undefined : opts.cost,
     durationMs: opts.durationMs,
   };
 }
@@ -62,7 +62,8 @@ function fmtCost(cost: LlmCost | undefined): string {
   if (cost?.amount === undefined) return "unavailable";
   const currency = cost.currency ?? "USD";
   const prefix = currency.toUpperCase() === "USD" ? "$" : `${currency} `;
-  const amount = cost.amount < 0.01 ? cost.amount.toFixed(6) : cost.amount.toFixed(4);
+  const amount =
+    cost.amount < 0.01 ? cost.amount.toFixed(6) : cost.amount.toFixed(4);
   return `${cost.estimated ? "estimated " : ""}${prefix}${amount}`;
 }
 

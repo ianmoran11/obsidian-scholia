@@ -5,6 +5,7 @@ import { formatRunMetadataLine } from "../llm/metadata";
 export type AppendFormat = "markdown" | "json-line";
 
 export interface AppendOptions {
+  signal?: AbortSignal;
   relativePath: string;
   content: string;
   format: AppendFormat;
@@ -17,7 +18,9 @@ export interface AppendOptions {
 async function ensureFolderExists(
   vault: Vault,
   folderPath: string,
+  signal?: AbortSignal,
 ): Promise<void> {
+  signal?.throwIfAborted();
   const existing = vault.getFolderByPath(folderPath);
   if (existing) return;
 
@@ -28,6 +31,7 @@ async function ensureFolderExists(
     currentPath = currentPath ? `${currentPath}/${part}` : part;
     const folder = vault.getFolderByPath(currentPath);
     if (!folder) {
+      signal?.throwIfAborted();
       await vault.createFolder(currentPath);
     }
   }
@@ -76,6 +80,7 @@ export async function appendToVault(
   options: AppendOptions,
 ): Promise<void> {
   const {
+    signal,
     relativePath,
     content,
     format,
@@ -85,12 +90,14 @@ export async function appendToVault(
     question,
   } = options;
 
+  signal?.throwIfAborted();
   const parts = relativePath.split("/");
   if (parts.length > 1) {
     const folderParts = parts.slice(0, -1);
-    await ensureFolderExists(vault, folderParts.join("/"));
+    await ensureFolderExists(vault, folderParts.join("/"), signal);
   }
 
+  signal?.throwIfAborted();
   const file = vault.getFileByPath(relativePath);
 
   if (format === "markdown") {
@@ -103,9 +110,11 @@ export async function appendToVault(
     );
     if (file) {
       const existing = await vault.read(file);
+      signal?.throwIfAborted();
       await vault.modify(file, existing + "\n\n" + entry);
     } else {
       const header = "# Captures\n\n";
+      signal?.throwIfAborted();
       await vault.create(relativePath, header + entry);
     }
   } else {
@@ -118,8 +127,10 @@ export async function appendToVault(
     );
     if (file) {
       const existing = await vault.read(file);
+      signal?.throwIfAborted();
       await vault.modify(file, existing + "\n" + entry);
     } else {
+      signal?.throwIfAborted();
       await vault.create(relativePath, entry + "\n");
     }
   }

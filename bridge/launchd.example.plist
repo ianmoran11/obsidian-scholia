@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>dev.scholia.pi-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/ABSOLUTE/PATH/TO/node</string>
+    <string>/ABSOLUTE/PATH/TO/obsidian-scholia/bridge/dist/bridge/src/main.js</string>
+  </array>
+  <key>WorkingDirectory</key><string>/ABSOLUTE/PATH/TO/obsidian-scholia/bridge</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SCHOLIA_BRIDGE_TOKEN_FILE</key><string>/ABSOLUTE/HOME/.config/scholia/bridge-token</string>
+    <key>PI_CODING_AGENT_DIR</key><string>/ABSOLUTE/HOME/.pi/agent</string>
+    <key>SCHOLIA_BRIDGE_PORT</key><string>3210</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>StandardOutPath</key><string>/ABSOLUTE/HOME/Library/Logs/scholia-pi-bridge.log</string>
+  <key>StandardErrorPath</key><string>/ABSOLUTE/HOME/Library/Logs/scholia-pi-bridge-error.log</string>
+</dict>
+</plist>

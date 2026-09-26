@@ -243,3 +243,39 @@ describe("storage.appendFile", () => {
     });
   });
 });
+
+it("unload during a vault read prevents a subsequent capture modify", async () => {
+  const vault = createMockVault();
+  await vault.create("captures.md", "Existing");
+  const controller = new AbortController();
+  vault.read = async (file) => {
+    controller.abort(new Error("Scholia unloaded."));
+    return file.content;
+  };
+  await expect(
+    appendToVault(vault as never, {
+      relativePath: "captures.md",
+      content: "Late",
+      format: "markdown",
+      signal: controller.signal,
+    }),
+  ).rejects.toThrow("unloaded");
+  expect(vault.files.get("captures.md")?.content).toBe("Existing");
+});
+
+it("unload during folder creation prevents subsequent capture creation", async () => {
+  const vault = createMockVault();
+  const controller = new AbortController();
+  vault.createFolder = async () => {
+    controller.abort(new Error("Scholia unloaded."));
+  };
+  await expect(
+    appendToVault(vault as never, {
+      relativePath: "folder/captures.md",
+      content: "Late",
+      format: "markdown",
+      signal: controller.signal,
+    }),
+  ).rejects.toThrow("unloaded");
+  expect(vault.files.size).toBe(0);
+});

@@ -110,6 +110,7 @@ export class Stream {
    * content already streamed after it. Returns false if the prefix was edited.
    */
   replacePlainPrefix(expectedText: string, replacementText: string): boolean {
+    if (!this.canWriteToEditor()) return false;
     const content = this.editor.getValue();
     const currentPrefix = content.slice(this.skeletonStart, this.skeletonEnd);
     if (currentPrefix !== expectedText) return false;
@@ -132,7 +133,22 @@ export class Stream {
     }
   }
 
+  canWriteToEditor(): boolean {
+    // Android can resume after a long network gap or a missed editor-change event.
+    // Never apply recovered text to a changed editor/document at stale offsets.
+    if (
+      this.editor.getValue() !== this.lastKnownContent ||
+      (this.view.file?.path ?? "") !== this.filePath
+    ) {
+      this.abortWithError(
+        "Note changed while waiting for generation. Run again from the intended note.",
+      );
+    }
+    return !this.abort.signal.aborted;
+  }
+
   async writeChunk(raw: string): Promise<void> {
+    if (!this.canWriteToEditor()) throw this.getAbortError();
     this.inRangeWriteInProgress = true;
     try {
       const prefixed = this.plain ? raw : raw.replace(/\n/g, "\n> ");
@@ -147,6 +163,7 @@ export class Stream {
   }
 
   setCalloutType(calloutType: string): void {
+    if (!this.canWriteToEditor()) return;
     const content = this.editor.getValue();
     const headerStart =
       content[this.skeletonStart] === "\n"
@@ -212,9 +229,13 @@ export class Stream {
   applyExternalEdit(
     delta: number,
     changePos: number,
+    oldChangeEnd = changePos,
   ): "shift" | "abort" | "none" {
     if (this.inRangeWriteInProgress) return "none";
-    if (changePos >= this.skeletonStart && changePos < this.skeletonEnd) {
+    if (
+      (changePos >= this.skeletonStart || oldChangeEnd > this.skeletonStart) &&
+      changePos < Math.max(this.skeletonEnd, this.writeOffset)
+    ) {
       this.abortWithError("User edited inside the callout");
       return "abort";
     }

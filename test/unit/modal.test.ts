@@ -399,3 +399,24 @@ describe("CustomProbeModal", () => {
     });
   });
 });
+
+it("explains and disables unsupported Pi tuning controls", () => {
+  const modal = new CustomProbeModal(
+    createMockApp() as any,
+    createMockTemplate(),
+    {
+      ...modalDefaults,
+      piBackend: true,
+      defaultReasoningEnabled: false,
+    },
+  );
+  modal.open();
+  for (const id of ["reasoning-enabled", "reasoning-effort", "token-budget"]) {
+    expect(
+      (modal.contentEl.querySelector(`#${id}`) as HTMLInputElement).disabled,
+    ).toBe(true);
+  }
+  expect(modal.contentEl.textContent).toContain(
+    "Pi/Codex uses medium reasoning",
+  );
+});

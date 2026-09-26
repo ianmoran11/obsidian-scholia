@@ -1,6 +1,5 @@
 import { App, Notice } from "obsidian";
-import type { OpenRouterClient } from "../llm/openrouter";
-import type { LlmCost, LlmRequest, LlmUsage } from "../llm/client";
+import type { LlmClient, LlmCost, LlmRequest, LlmUsage } from "../llm/client";
 import { buildRunMetadata } from "../llm/metadata";
 import type { LlmRunMetadata } from "../llm/metadata";
 import type { TemplateConfig } from "../templates/types";
@@ -18,7 +17,7 @@ export class CaptureRunner {
   }
 
   async runWithCapture(
-    llmClient: OpenRouterClient,
+    llmClient: LlmClient,
     llmRequest: LlmRequest,
     config: TemplateConfig,
     abortSignal: AbortSignal,
@@ -75,6 +74,7 @@ export class CaptureRunner {
             })
           : accumulatedContent;
         await appendToVault(this.app.vault, {
+          signal: abortSignal,
           relativePath: config.alsoAppendTo,
           content: captureContent,
           format: config.appendFormat ?? "markdown",
@@ -83,9 +83,11 @@ export class CaptureRunner {
           metadata,
           question,
         });
+        abortSignal.throwIfAborted();
         new Notice(`Scholia: captured to ${config.alsoAppendTo}`);
       }
 
+      abortSignal.throwIfAborted();
       await sqliteStore.insertCapture({
         id: runId,
         ts: new Date().toISOString(),
