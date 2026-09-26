@@ -48,6 +48,7 @@ interface PluginRef {
 
 interface RegisteredTemplate {
   file: TFile;
+  mtime: number;
   config: TemplateConfig;
   commandId: string;
 }
@@ -71,6 +72,7 @@ export class TemplateRegistry {
     return () => {
       if (this.streamManager.isDisposed) return false;
       if (
+        this.app.workspace.getActiveViewOfType(MarkdownView) !== view ||
         view.file?.path !== path ||
         view.editor !== editor ||
         editor.getValue() !== content
@@ -106,6 +108,9 @@ export class TemplateRegistry {
   }
 
   private async loadTemplate(file: TFile): Promise<boolean> {
+    // TFile and stat are mutable in Obsidian. Snapshot before the read await.
+    const mtime = file.stat.mtime;
+    const templatePath = file.path;
     const result = await this.parseTemplate(file);
     if (this.streamManager.isDisposed || !result || !result.isValid) {
       return false;
@@ -118,9 +123,8 @@ export class TemplateRegistry {
     const command: Command = {
       id: rawCommandId,
       name: `${config.commandPrefix}: ${templateName}`,
-      callback: () => {
-        this.runTemplateCommand(file.path, config, templateName);
-      },
+      // Do not retain parsed config: hot reload may be disabled or missed.
+      callback: () => this.runTemplateCommand(templatePath),
     };
 
     if (config.hotkey && config.hotkey.length > 0) {
@@ -133,6 +137,7 @@ export class TemplateRegistry {
 
     this.templates.set(file.path, {
       file,
+      mtime,
       config,
       commandId,
     });
@@ -185,9 +190,22 @@ export class TemplateRegistry {
   }
 
   private async parseTemplate(file: TFile): Promise<ParseResult | null> {
-    const content = await this.app.vault.read(file);
-    const parts = content.split(/^---$/m);
-    if (parts.length < 3) {
+    let content: string;
+    try {
+      content = await this.app.vault.read(file);
+    } catch {
+      if (!this.streamManager.isDisposed) {
+        new Notice(
+          "Scholia: could not read the template. Check that it exists and is available locally, then run again.",
+        );
+      }
+      return null;
+    }
+    if (this.streamManager.isDisposed) return null;
+    const parts = content.match(
+      /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/,
+    );
+    if (!parts) {
       new Notice(
         `Scholia template invalid: ${file.path} — missing frontmatter separator`,
       );
@@ -196,13 +214,12 @@ export class TemplateRegistry {
 
     let rawFrontmatter: Record<string, unknown> = {};
     try {
-      const cachedFrontmatter =
-        this.app.metadataCache.getFileCache(file)?.frontmatter;
-      if (cachedFrontmatter) {
-        rawFrontmatter = cachedFrontmatter;
-      } else {
-        rawFrontmatter = parseYaml(parts[1]);
+      // Metadata cache may still describe the previous version of this file.
+      const parsed: unknown = parseYaml(parts[1]);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("Frontmatter must be a mapping");
       }
+      rawFrontmatter = parsed as Record<string, unknown>;
     } catch {
       new Notice(
         `Scholia template invalid: ${file.path} — invalid YAML frontmatter`,
@@ -210,7 +227,7 @@ export class TemplateRegistry {
       return null;
     }
 
-    const systemPrompt = parts.slice(2).join("---").trim();
+    const systemPrompt = parts[2].trim();
 
     return parseFrontmatter(
       rawFrontmatter as Parameters<typeof parseFrontmatter>[0],
@@ -261,7 +278,7 @@ export class TemplateRegistry {
       } else {
         const existing = this.templates.get(path);
         const file = this.app.vault.getFileByPath(path);
-        if (existing && file && existing.file.stat.mtime !== file.stat.mtime) {
+        if (existing && file && existing.mtime !== file.stat.mtime) {
           removeCommand(this.app, existing.commandId);
           this.templates.delete(path);
           await this.loadTemplate(file);
@@ -272,8 +289,8 @@ export class TemplateRegistry {
 
   private async runTemplateCommand(
     templatePath: string,
-    config: TemplateConfig,
-    templateName: string,
+    config?: TemplateConfig,
+    templateName = this.getTemplateName(templatePath),
   ): Promise<void> {
     if (this.streamManager.isDisposed) return;
     const configurationError = backendError(this.plugin.settings);
@@ -289,9 +306,33 @@ export class TemplateRegistry {
     }
 
     const canStart = this.initialWriteGuard(view);
+    // Preserve mobile selection/callout targeting before any asynchronous read.
     const editor = view.editor;
     const initialSelection = editor.getSelection();
     const initialChatCallout = findScholiaCalloutAtCursorOrSelection(editor);
+    if (!config) {
+      const file = this.app.vault.getFileByPath(templatePath);
+      if (!file) {
+        new Notice(
+          "Scholia: template not found. Restore it or reload template commands, then run again.",
+        );
+        return;
+      }
+      const mtime = file.stat.mtime;
+      const parsed = await this.parseTemplate(file);
+      if (!canStart() || !parsed?.isValid) return;
+      if (
+        this.app.vault.getFileByPath(templatePath) !== file ||
+        file.path !== templatePath ||
+        file.stat.mtime !== mtime
+      ) {
+        new Notice(
+          "Scholia: template changed or was deleted while reading. Run again.",
+        );
+        return;
+      }
+      config = parsed.config;
+    }
     let effectiveScope = config.contextScope;
     let systemPrompt = config.systemPrompt;
     const effectiveConfig: TemplateConfig = { ...config };
@@ -1002,7 +1043,9 @@ export class TemplateRegistry {
     if (this.streamManager.isDisposed) return;
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view || view.file?.path !== sourcePath) {
-      new Notice("Scholia: The source note is no longer active. Try regenerating from that note.");
+      new Notice(
+        "Scholia: The source note is no longer active. Try regenerating from that note.",
+      );
       return;
     }
 
@@ -1047,14 +1090,31 @@ export class TemplateRegistry {
       return;
     }
 
+    const templatePath = parsed.runSnapshot.templatePath;
+    const templateMtime = templateFile.stat.mtime;
     const parsedTemplate = await this.parseTemplate(templateFile);
     if (!canStart() || !parsedTemplate?.isValid) {
+      return;
+    }
+    if (
+      this.app.vault.getFileByPath(templatePath) !== templateFile ||
+      templateFile.path !== templatePath ||
+      templateFile.stat.mtime !== templateMtime
+    ) {
+      new Notice(
+        "Scholia: template changed or was deleted while reading. Run again.",
+      );
       return;
     }
 
     const snapshot = parsed.runSnapshot;
     try {
-      resolveModel(this.plugin.settings, snapshot.model);
+      resolveModel(
+        this.plugin.settings,
+        snapshot.model,
+        "callout",
+        snapshot.provider,
+      );
     } catch (error) {
       new Notice(`Scholia: ${(error as Error).message}`);
       return;
@@ -1088,6 +1148,18 @@ export class TemplateRegistry {
       attachmentPaths,
     );
     if (!canStart()) return;
+    // Backend settings may have changed while attached notes were loading.
+    try {
+      resolveModel(
+        this.plugin.settings,
+        snapshot.model,
+        "callout",
+        snapshot.provider,
+      );
+    } catch (error) {
+      new Notice(`Scholia: ${(error as Error).message}`);
+      return;
+    }
     const llmRequest: LlmRequest = applyBackend(this.plugin.settings, {
       model: snapshot.model,
       temperature:

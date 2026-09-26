@@ -28,14 +28,18 @@ function setup() {
     cursor = offset;
   };
   const view = { editor, file: { path: "note.md" } };
+  const fileRefs = new Map<string, { path: string; stat: { mtime: number } }>();
+  const getFileByPath = (path: string) => {
+    if (!files.has(path)) return null;
+    if (!fileRefs.has(path)) fileRefs.set(path, { path, stat: { mtime: 1 } });
+    return fileRefs.get(path)!;
+  };
   const app = {
     workspace: { getActiveViewOfType: () => view },
     metadataCache: { getFileCache: () => null },
     vault: {
-      getMarkdownFiles: () =>
-        Array.from(files.keys()).map((path) => ({ path, stat: { mtime: 1 } })),
-      getFileByPath: (path: string) =>
-        files.has(path) ? { path, stat: { mtime: 1 } } : null,
+      getMarkdownFiles: () => Array.from(files.keys()).map(getFileByPath),
+      getFileByPath,
       read: async (file: { path: string }) => files.get(file.path)!,
       create: async (path: string, content: string) => files.set(path, content),
       modify: async (file: { path: string }, content: string) =>
@@ -89,7 +93,18 @@ function setup() {
       { ...config, ...overrides },
       "Study",
     );
-  return { registry, files, editor, pi, openrouter, run, view, app, manager };
+  return {
+    registry,
+    files,
+    editor,
+    pi,
+    openrouter,
+    run,
+    view,
+    app,
+    manager,
+    plugin,
+  };
 }
 afterEach(() => vi.restoreAllMocks());
 
@@ -132,6 +147,39 @@ function deferred<T>() {
   const promise = new Promise<T>((r) => (resolve = r));
   return { promise, resolve };
 }
+
+it.each(["delete", "modify", "rename"])(
+  "rejects regeneration if its template changes during the read: %s",
+  async (action) => {
+    const f = setup();
+    await f.run();
+    f.editor.setCursor(f.editor.getValue().indexOf("Codex answer"));
+    const before = f.editor.getValue();
+    const path = "templates/Study.md";
+    const oldContent = f.files.get(path)!;
+    const file = f.app.vault.getFileByPath(path);
+    const read = deferred<string>();
+    const entered = deferred<void>();
+    vi.spyOn(f.app.vault, "read").mockImplementationOnce(() => {
+      entered.resolve();
+      return read.promise;
+    });
+    f.pi.mockClear();
+    const running = f.registry.regenerateActiveCallout();
+    await entered.promise;
+    if (action === "delete") f.files.delete(path);
+    if (action === "modify") {
+      f.files.set(path, oldContent + " Changed prompt.");
+      file.stat.mtime++;
+    }
+    if (action === "rename") file.path = "templates/Renamed.md";
+    read.resolve(oldContent);
+    await running;
+    expect(f.editor.getValue()).toBe(before);
+    expect(f.pi).not.toHaveBeenCalled();
+    expect(f.openrouter).not.toHaveBeenCalled();
+  },
+);
 
 it("Pi callout snapshots omit unsupported tuning and can still regenerate", async () => {
   const f = setup();
@@ -211,7 +259,9 @@ it("rejects rendered regeneration when the active note changes during openFile",
   const opened = deferred<void>();
   const openFile = vi.fn(() => opened.promise);
   f.app.workspace.getLeaf = () => ({ openFile });
-  const lineStart = original.split("\n").findIndex((line: string) => line.startsWith("> [!"));
+  const lineStart = original
+    .split("\n")
+    .findIndex((line: string) => line.startsWith("> [!"));
   expect(lineStart).toBeGreaterThanOrEqual(0);
   f.pi.mockClear();
 
@@ -336,4 +386,105 @@ it("unload during an actual bridge poll sends DELETE and discards its late succe
   ).toBe(true);
   expect(f.editor.getValue()).toBe(before);
   expect(f.files.has("captures.md")).toBe(false);
+});
+
+it.each([
+  "OpenRouter snapshot on Pi",
+  "legacy OpenRouter snapshot on Pi",
+  "Pi snapshot on OpenRouter",
+  "provider mismatch",
+])("stops incompatible old callout regeneration: %s", async (scenario) => {
+  const f = setup();
+  await f.run();
+  if (scenario === "Pi snapshot on OpenRouter") {
+    Object.assign(f.plugin.settings, {
+      llmBackend: "openrouter",
+      openRouterApiKey: "fake",
+    });
+  } else {
+    f.editor.setValue(
+      f.editor
+        .getValue()
+        .replace(
+          /<!-- scholia:run (.*?) -->/,
+          (_match: string, json: string) => {
+            const snapshot = JSON.parse(json);
+            snapshot.provider = "openrouter";
+            if (scenario.includes("OpenRouter snapshot on Pi"))
+              snapshot.model = "private-old-model";
+            if (scenario.startsWith("legacy")) delete snapshot.provider;
+            return `<!-- scholia:run ${JSON.stringify(snapshot)} -->`;
+          },
+        ),
+    );
+  }
+  f.editor.setCursor(f.editor.getValue().indexOf("Codex answer"));
+  const before = f.editor.getValue();
+  const notices = vi.spyOn(console, "log").mockImplementation(() => {});
+  f.pi.mockClear();
+  await f.registry.regenerateActiveCallout();
+  expect(f.editor.getValue()).toBe(before);
+  expect(f.pi).not.toHaveBeenCalled();
+  expect(f.openrouter).not.toHaveBeenCalled();
+  const text = JSON.stringify(notices.mock.calls);
+  expect(text).toContain("old callout snapshot");
+  expect(text).toContain("run the template anew");
+  expect(text).not.toContain("private-old-model");
+});
+
+it("regeneration preserves the original Pi snapshot model after default and template edits", async () => {
+  const f = setup();
+  await f.run();
+  f.editor.setCursor(f.editor.getValue().indexOf("Codex answer"));
+  f.plugin.settings.piModel = "openai-codex/gpt-5.5";
+  f.files.set(
+    "templates/Study.md",
+    "---\ncontext_scope: full-note\noutput_destination: inline\nmodel: openai-codex/other\n---\nFresh prompt",
+  );
+  await f.registry.regenerateActiveCallout();
+  expect(f.pi.mock.calls[1][0]).toMatchObject({
+    model: "openai-codex/fake",
+    provider: "openai-codex",
+    system: "Fresh prompt\n\nUser request: Why?",
+  });
+  expect(f.openrouter).not.toHaveBeenCalled();
+});
+
+it("catches regeneration template read errors without editing or exposing the error", async () => {
+  const f = setup();
+  await f.run();
+  f.editor.setCursor(f.editor.getValue().indexOf("Codex answer"));
+  const before = f.editor.getValue();
+  vi.spyOn(f.app.vault, "read").mockRejectedValueOnce(
+    new Error("secret prompt"),
+  );
+  const notices = vi.spyOn(console, "log").mockImplementation(() => {});
+  await f.registry.regenerateActiveCallout();
+  expect(f.editor.getValue()).toBe(before);
+  expect(f.pi).toHaveBeenCalledTimes(1);
+  expect(f.openrouter).not.toHaveBeenCalled();
+  expect(JSON.stringify(notices.mock.calls)).toContain(
+    "could not read the template",
+  );
+  expect(JSON.stringify(notices.mock.calls)).not.toContain("secret prompt");
+});
+
+it("does not reroute old snapshots if the backend changes during attachment reads", async () => {
+  const f = setup();
+  await f.run();
+  f.editor.setCursor(f.editor.getValue().indexOf("Codex answer"));
+  const before = f.editor.getValue();
+  vi.spyOn(f.registry as any, "buildContextWithAttachments").mockImplementation(
+    async () => {
+      Object.assign(f.plugin.settings, {
+        llmBackend: "openrouter",
+        openRouterApiKey: "fake",
+      });
+      return { context: "Context", attachedNotePaths: [] };
+    },
+  );
+  await f.registry.regenerateActiveCallout();
+  expect(f.editor.getValue()).toBe(before);
+  expect(f.pi).toHaveBeenCalledTimes(1);
+  expect(f.openrouter).not.toHaveBeenCalled();
 });

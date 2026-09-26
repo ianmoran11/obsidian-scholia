@@ -16,7 +16,6 @@ function createMockApp(
   frontmatterByPath = new Map<string, Record<string, unknown>>(),
 ) {
   const commands: Map<string, { id: string; name: string }> = new Map();
-  let getFileByPathCallCount = 0;
 
   return {
     vault: {
@@ -29,12 +28,7 @@ function createMockApp(
       getFileByPath: (path: string) => {
         const file = files.get(path);
         if (!file) return null;
-        getFileByPathCallCount++;
-        return {
-          path: file.path,
-          stat: { mtime: file.stat.mtime + getFileByPathCallCount },
-          content: file.content,
-        } as MockFile;
+        return file;
       },
       read: async (file: MockFile) => file.content || "",
     },
@@ -135,7 +129,7 @@ describe("TemplateRegistry", () => {
       expect(cmd?.name).toBe("Run: Clarify");
     });
 
-    it("prefers metadata cache frontmatter over YAML fallback", async () => {
+    it("prefers freshly read YAML over stale metadata cache frontmatter", async () => {
       const files = new Map<string, MockFile>();
       files.set("Edu-Templates/Clarify.md", {
         path: "Edu-Templates/Clarify.md",
@@ -161,9 +155,7 @@ describe("TemplateRegistry", () => {
       const registered = registry
         .getRegisteredCommands()
         .get("Edu-Templates/Clarify.md");
-      expect(registered?.config.hotkey).toEqual([
-        { modifiers: ["Mod", "Shift"], key: "C" },
-      ]);
+      expect(registered?.config.hotkey).toEqual([]);
     });
 
     it("skips invalid templates with missing frontmatter", async () => {

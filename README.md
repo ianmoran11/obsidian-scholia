@@ -4,11 +4,11 @@ Active-reading AI annotations for Obsidian. Scholia lets you annotate, clarify, 
 
 ## Latest release
 
-**[0.1.23 — Scholia Reader identity and settings migration](releases/0.1.23.md)** gives this plugin the collision-free ID `scholia-reader`. Desktop and mobile remain supported (Obsidian 1.5.0+). The private Pi/Codex bridge still requires separate [Mac/Tailscale setup](bridge/README.md); BRAT installs only the Obsidian plugin.
+**[0.1.24 — Fresh template models after edits](releases/0.1.24.md)** fixes cached templates retaining removed model overrides, including when hot reload is disabled. This plugin keeps the collision-free ID `scholia-reader`. Desktop and mobile remain supported (Obsidian 1.5.0+). The private Pi/Codex bridge still requires separate [Mac/Tailscale setup](bridge/README.md); BRAT installs only the Obsidian plugin.
 
 ## Installation
 
-**Fresh BRAT install:** add `ianmoran11/obsidian-scholia` as a beta plugin, then enable **Scholia Reader**. Release `0.1.23` includes the versioned `manifest.json`, `main.js`, and `styles.css` assets.
+**Fresh BRAT install:** add `ianmoran11/obsidian-scholia` as a beta plugin, then enable **Scholia Reader**. Release `0.1.24` includes the versioned `manifest.json`, `main.js`, and `styles.css` assets.
 
 **The community-store “Scholia” by shashanyu is unrelated.** Do not install it for this project or edit its manifest to force mobile compatibility.
 
@@ -17,7 +17,7 @@ Active-reading AI annotations for Obsidian. Scholia lets you annotate, clarify, 
 The ID changed from `scholia` to `scholia-reader`; an ordinary BRAT update may fail to find the new folder, especially on Android. Use the reinstall flow:
 
 1. Back up your vault, including the old `<configDir>/plugins/scholia/` folder and its `data.json` (contains credentials). Disable old **Scholia**, but **do not uninstall or delete it before copying settings**.
-2. In BRAT run **Plugins: Choose a single plugin to reinstall**, select `ianmoran11/obsidian-scholia`, and install the latest release (`0.1.23`). Unpin the old version first if necessary. BRAT writes the new manifest ID's folder; it does **not** migrate plugin data.
+2. In BRAT run **Plugins: Choose a single plugin to reinstall**, select `ianmoran11/obsidian-scholia`, and install the latest release (`0.1.24`). Unpin the old version first if necessary. BRAT writes the new manifest ID's folder; it does **not** migrate plugin data.
 3. Enable **Scholia Reader**. On its first load with no new saved data, the plugin checks the old manifest's identity and copies only recognized, correctly typed plugin settings, including API keys and bridge tokens. Custom Obsidian configuration directories are supported. The old files are never changed or deleted.
 4. Check the copy-success notice, then verify **Settings → Scholia Reader**, credentials, template folder, capture destination and templates. Existing templates, notes, callout styles and saved run snapshots keep their original names and paths; default paths remain `scholia/templates` and `scholia/flashcards.md`.
 5. Reassign command hotkeys and mobile toolbar bindings as needed: command IDs now start with `scholia-reader:` instead of `scholia:`. Only plugin settings are copied, not Obsidian hotkeys, toolbar configuration or enabled-plugin lists.

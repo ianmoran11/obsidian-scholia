@@ -283,3 +283,12 @@ describe("provider routing and metadata", () => {
     expect(metadata.maxTokens).toBeUndefined();
   });
 });
+
+it("distinguishes incompatible OpenRouter defaults from template overrides without echoing model data", () => {
+  expect(() =>
+    resolveModel({ ...DEFAULT_SETTINGS, defaultModel: "openai-codex/private" }),
+  ).toThrow(/OpenRouter default model setting/);
+  expect(() => resolveModel(DEFAULT_SETTINGS, "openai-codex/private")).toThrow(
+    /template's model override/,
+  );
+});

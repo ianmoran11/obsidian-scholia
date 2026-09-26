@@ -1,5 +1,5 @@
 import type { ScholiaSettings } from "../settings";
-import type { LlmClient, LlmRequest } from "./client";
+import type { LlmClient, LlmProvider, LlmRequest } from "./client";
 import { OpenRouterClient } from "./openrouter";
 import {
   PiBridgeClient,
@@ -35,20 +35,37 @@ export function createLlmClient(settings: ScholiaSettings): LlmClient {
 export function resolveModel(
   settings: ScholiaSettings,
   override?: string,
+  source: "template" | "callout" = "template",
+  snapshotProvider?: LlmProvider,
 ): string {
   const pi = settings.llmBackend === "pi";
   const model = (
     override ?? (pi ? settings.piModel : settings.defaultModel)
   ).trim();
   if (
-    pi
+    (source === "callout" &&
+      snapshotProvider !== undefined &&
+      snapshotProvider !== (pi ? "openai-codex" : "openrouter")) ||
+    (pi
       ? !/^openai-codex\/[a-zA-Z0-9._-]+$/.test(model)
-      : model.startsWith("openai-codex/")
+      : model.startsWith("openai-codex/"))
   ) {
+    if (source === "callout") {
+      throw new Error(
+        "This old callout snapshot is incompatible with the selected backend. Restore its original backend in Settings to regenerate, or run the template anew to use your current model. Editing a template does not change old snapshots.",
+      );
+    }
+    if (override === undefined) {
+      throw new Error(
+        pi
+          ? "Invalid Pi default model setting. Set Pi model in Settings to openai-codex/<model> (for example openai-codex/gpt-5.5)."
+          : "Invalid OpenRouter default model setting: a Pi Codex model requires Pi. Update the OpenRouter model or select Pi in Settings.",
+      );
+    }
     throw new Error(
       pi
-        ? "Pi requires openai-codex/<model>. Remove the OpenRouter model override from this template, or choose OpenRouter in Settings."
-        : "This template/callout uses a Pi Codex model. Select Pi in Settings or remove its model override.",
+        ? "This template's model override is incompatible with Pi (requires openai-codex/<model>). Remove or update the model in the template YAML to use Pi, or select OpenRouter in Settings."
+        : "This template's model override uses a Pi Codex model. Select Pi in Settings or update/remove the template model override.",
     );
   }
   return model;
